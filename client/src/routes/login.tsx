@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowRight, Loader2, Terminal } from 'lucide-react'
 
-import { AsciiArt, AsciiTerminal } from '@/components/ascii-art'
+import { AsciiTerminal, SandBoxArt } from '@/components/ascii-art'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -83,7 +83,7 @@ function LoginPage() {
     <div className="grid min-h-screen lg:grid-cols-2">
       <div className="relative hidden overflow-hidden border-r bg-zinc-950 lg:block">
         <div className="absolute inset-0">
-          <AsciiArt />
+          <SandBoxArt />
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
 
