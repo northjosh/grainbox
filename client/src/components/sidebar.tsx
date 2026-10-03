@@ -100,19 +100,6 @@ export function Sidebar({ open, onClose, className }: SidebarProps) {
               </Link>
             )
           })}
-
-          <div className="mt-6 space-y-3 rounded-lg border bg-muted/30 p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Status
-              </span>
-              <Activity className="size-3.5 text-muted-foreground" />
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <HealthBadge />
-              <SlotsBadge />
-            </div>
-          </div>
         </nav>
 
         <div className="border-t p-3">
@@ -121,6 +108,20 @@ export function Sidebar({ open, onClose, className }: SidebarProps) {
               <ThemeToggle />
             </div>
             <AccountMenu />
+          </div>
+        </div>
+
+        {/* Status at the bottom of the sidebar */}
+        <div className="mt-6 space-y-3 rounded-lg border bg-muted/30 p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Status
+            </span>
+            <Activity className="size-3.5 text-muted-foreground" />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <HealthBadge />
+            <SlotsBadge />
           </div>
         </div>
       </aside>
