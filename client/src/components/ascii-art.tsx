@@ -20,6 +20,8 @@ const EDGE_STEPS = 130
 /** Grains stacked on each sample, giving the ridge some thickness. */
 const GRAINS_PER_SAMPLE = 2
 
+const CHAR_SET = [' ', '.', ':', '-', '=', '+', '*', '#', '@']
+
 type Vec3 = [number, number, number]
 
 interface Grain {
@@ -34,7 +36,7 @@ interface Grain {
   join: number
   tone: number
   drift: number
-  /** Fixed sub-pixel offset, so stacked grains don't land on one pixel. */
+  /** Fixed sub-pixel offset, so stacked grains don't land on one cell. */
   jx: number
   jy: number
   /** False for the ambient bed grains that never join the shape. */
@@ -56,6 +58,12 @@ function smoothstep(edge0: number, edge1: number, x: number) {
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t
+}
+
+function chooseChar(v: number) {
+  if (v <= 0) return ' '
+  const idx = Math.min(CHAR_SET.length - 1, Math.floor(v * CHAR_SET.length))
+  return CHAR_SET[idx]
 }
 
 /**
@@ -98,53 +106,53 @@ function buildEdgePoints(): Vec3[] {
 const EDGE_POINTS = buildEdgePoints()
 
 /**
- * A rotating wireframe cube made of sand. The cube condenses out of a bed of
- * loose grains, holds, then melts back down, so it is always ephemeral rather
- * than drawn.
+ * A rotating ASCII sand cube. The cube condenses out of a bed of
+ * loose grains, holds, then melts back down, so it is always ephemeral.
  */
 export function SandBoxArt({ className }: AsciiArtProps) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const gridRef = useRef<HTMLPreElement | null>(null)
 
   useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
+    const pre = gridRef.current
+    if (!pre) return
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
 
     let width = 0
     let height = 0
-    let dpr = 1
+    let colCount = 0
+    let rowCount = 0
+    let cellW = 1
+    let cellH = 1
     let grains: Grain[] = []
     let raf = 0
     let running = true
-    /** False while the panel is display:none, so we skip the work entirely. */
     let laidOut = false
 
     function build() {
-      const parent = canvas?.parentElement
-      if (!canvas || !parent) return
+      const parent = pre?.parentElement
+      if (!pre || !parent) return
 
       const rect = parent.getBoundingClientRect()
-      dpr = Math.min(window.devicePixelRatio || 1, 2)
       width = Math.max(rect.width, 1)
       height = Math.max(rect.height, 1)
-      // The panel is hidden below the lg breakpoint; don't render into nothing.
       laidOut = rect.width > 0 && rect.height > 0
-      canvas.width = Math.floor(width * dpr)
-      canvas.height = Math.floor(height * dpr)
-      canvas.style.width = `${width}px`
-      canvas.style.height = `${height}px`
+      if (!laidOut) return
 
-      // Sparse enough to read as scattered sand, dense enough to fill the panel.
+      const fontSize = 10
+      cellW = 8
+      cellH = 16
+      colCount = Math.max(20, Math.floor(width / cellW))
+      rowCount = Math.max(12, Math.floor(height / cellH))
+      pre.style.fontSize = `${fontSize}px`
+      pre.style.lineHeight = `${cellH}px`
+
+      // Sparse enough to read as scattered sand, dense enough to fill the grid.
       const count = Math.round(
-        Math.min(9000, Math.max(1400, (width * height) / 70)),
+        Math.min(6000, Math.max(800, (colCount * rowCount) / 2)),
       )
 
       grains = Array.from({ length: count }, () => ({
-        // The bed covers the whole panel; the cube grows out of it. Shape
-        // grains rest here too, so a melted cube blends back into the sand.
         sx: Math.random(),
         sy: Math.random(),
         ex: 0,
@@ -153,12 +161,11 @@ export function SandBoxArt({ className }: AsciiArtProps) {
         join: Math.random(),
         tone: Math.random(),
         drift: Math.random() * TAU,
-        jx: (Math.random() - 0.5) * 2.6,
-        jy: (Math.random() - 0.5) * 2.6,
+        jx: (Math.random() - 0.5) * 1.2,
+        jy: (Math.random() - 0.5) * 1.2,
         shape: false,
       }))
 
-      // Roughly 40% of the bed is recruited to build the cube.
       const shapeCount = Math.min(
         count,
         EDGE_POINTS.length * GRAINS_PER_SAMPLE,
@@ -171,13 +178,8 @@ export function SandBoxArt({ className }: AsciiArtProps) {
         g.ey = edge[1]
         g.ez = edge[2]
       }
-
-      // Assigning canvas.width clears it, so repaint the still frame whenever
-      // the canvas is rebuilt while motion is reduced.
-      if (reduced.matches) draw(1, 900)
     }
 
-    /** Rotates around Y then X and projects with a weak perspective divide. */
     function project(x: number, y: number, z: number, rx: number, ry: number) {
       const cosY = Math.cos(ry)
       const sinY = Math.sin(ry)
@@ -189,74 +191,73 @@ export function SandBoxArt({ className }: AsciiArtProps) {
       const y1 = y * cosX - z1 * sinX
       const z2 = y * sinX + z1 * cosX
 
-      const scale = Math.min(width, height) * 0.42
+      const scale = Math.min(colCount, rowCount) * 0.24
       const persp = 3.2 / (3.2 - z2)
 
       return {
-        x: width / 2 + x1 * scale * persp,
-        y: height / 2 + y1 * scale * persp,
+        gx: colCount / 2 + x1 * scale * persp,
+        gy: rowCount / 2 + y1 * scale * persp,
         z: z2,
       }
     }
 
     function draw(formation: number, time: number) {
-      if (!ctx || !canvas || !laidOut) return
-      const dw = canvas.width
-      const dh = canvas.height
-      const img = ctx.createImageData(dw, dh)
-      const data = img.data
+      if (!pre || !laidOut) return
 
       const rx = Math.sin(time * ROT_X) * 0.9 - 0.35
       const ry = time * ROT_Y
 
-      for (const grain of grains) {
-        // Every grain drifts in the bed, so the sand is never static.
-        const breeze = Math.sin(time / 2600 + grain.drift)
-        const bedX = grain.sx * width + breeze * 9 + grain.jx
-        const bedY = grain.sy * height + breeze * 4.5 + grain.jy
+      const grid: number[][] = Array.from({ length: rowCount }, () =>
+        new Array(colCount).fill(0),
+      )
 
-        let px: number
-        let py: number
+      for (const grain of grains) {
+        const breeze = Math.sin(time / 2600 + grain.drift)
+        const bedX = grain.sx * colCount + breeze * 6 + grain.jx
+        const bedY = grain.sy * rowCount + breeze * 3 + grain.jy
+
+        let gx: number
+        let gy: number
         let depth: number
 
         if (grain.shape) {
-          // Stagger: a grain only travels once the front passes its threshold.
           const gp = clamp01((formation - grain.join * SPREAD) / (1 - SPREAD))
-          // Sags under gravity while unformed, so it slumps rather than snaps.
-          const sag = (1 - gp) * 0.5
+          const sag = (1 - gp) * 0.4
           const target = project(grain.ex, grain.ey + sag, grain.ez, rx, ry)
-          // Travel happens in screen space, so a grain leaves the bed exactly
-          // where it was lying and lands exactly on its slot.
-          px = lerp(bedX, target.x, gp) + grain.jx * (1 - gp)
-          py = lerp(bedY, target.y, gp) + grain.jy * (1 - gp)
+          gx = lerp(bedX, target.gx, gp) + grain.jx * (1 - gp)
+          gy = lerp(bedY, target.gy, gp) + grain.jy * (1 - gp)
           depth = clamp01((target.z + 0.9) / 1.8)
         } else {
-          px = bedX
-          py = bedY
+          gx = bedX
+          gy = bedY
           depth = grain.tone
         }
 
-        const ix = Math.round(px * dpr)
-        const iy = Math.round(py * dpr)
-        if (ix < 0 || iy < 0 || ix >= dw || iy >= dh) continue
+        const x = Math.round(gx)
+        const y = Math.round(gy)
+        if (x < 0 || x >= colCount || y < 0 || y >= rowCount) continue
 
-        // Depth shading: back edges sit in shadow, front edges catch light.
-        const lit = grain.shape ? 0.55 + depth * 0.45 : 0.18 + depth * 0.22
-        const i = (iy * dw + ix) * 4
-        data[i] = Math.round(206 + lit * 44)
-        data[i + 1] = Math.round(158 + lit * 78)
-        data[i + 2] = Math.round(92 + lit * 108)
-        data[i + 3] = Math.round(
-          (grain.shape ? 96 + depth * 150 : 26 + depth * 54) *
-            (0.55 + grain.tone * 0.45),
-        )
+        const val = grain.shape
+          ? 0.2 + depth * 0.8
+          : 0.08 + depth * 0.14
+        const fade = 0.55 + grain.tone * 0.45
+        grid[y][x] = Math.max(grid[y][x], val * fade)
       }
 
-      ctx.putImageData(img, 0, 0)
+      let out = ''
+      for (let r = 0; r < rowCount; r++) {
+        let line = ''
+        for (let c = 0; c < colCount; c++) {
+          line += chooseChar(grid[r][c])
+        }
+        out += line
+        if (r < rowCount - 1) out += '\n'
+      }
+      pre.textContent = out
     }
 
     function loop(time: number) {
-      if (!running) return
+      if (!running || !laidOut) return
 
       const phase = (time % CYCLE_MS) / CYCLE_MS
       const formation = Math.min(
@@ -269,7 +270,7 @@ export function SandBoxArt({ className }: AsciiArtProps) {
     }
 
     const observer = new ResizeObserver(build)
-    if (canvas.parentElement) observer.observe(canvas.parentElement)
+    if (pre.parentElement) observer.observe(pre.parentElement)
     build()
 
     if (reduced.matches) {
@@ -298,109 +299,13 @@ export function SandBoxArt({ className }: AsciiArtProps) {
   }, [])
 
   return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden
-      className={cn('block size-full', className)}
-    />
-  )
-}
-
-const SCRIPT: readonly { cmd: string; out: string }[] = [
-  { cmd: 'whoami', out: 'sandbox-operator' },
-  { cmd: 'echo $SBX_IMAGE', out: 'alpine' },
-  { cmd: 'sbx ps', out: 'sbx-ig-88-5d4eb0fe  running' },
-  { cmd: 'sbx exec uname -a', out: 'Linux 6.12.0 x86_64 GNU/Linux' },
-]
-
-type TerminalProps = {
-  className?: string
-}
-
-/** Typewriter terminal that loops through a short scripted session. */
-export function AsciiTerminal({ className }: TerminalProps) {
-  const codeRef = useRef<HTMLElement | null>(null)
-
-  useEffect(() => {
-    const code = codeRef.current
-    if (!code) return
-
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
-
-    const lines = SCRIPT.flatMap((s) => [`$ ${s.cmd}`, s.out])
-
-    if (reduced.matches) {
-      code.textContent = [...lines, '$ '].join('\n')
-      return
-    }
-
-    let lineIdx = 0
-    let cmdChars = 0
-    let outChars = 0
-    let stage = 0
-    let timer = 0
-
-    function paint() {
-      const done = lines.slice(0, lineIdx * 2)
-      const step = SCRIPT[lineIdx % SCRIPT.length]!
-      const parts = [...done, `$ ${step.cmd}`.slice(0, cmdChars)]
-      if (stage >= 2) parts.push(step.out.slice(0, outChars))
-      if (code) code.textContent = parts.join('\n')
-    }
-
-    function tick() {
-      const step = SCRIPT[lineIdx % SCRIPT.length]!
-      const command = `$ ${step.cmd}`
-
-      if (stage === 0) {
-        cmdChars += 1
-        if (cmdChars > command.length) {
-          stage = 1
-          timer = window.setTimeout(tick, 300)
-          return
-        }
-        timer = window.setTimeout(tick, 55 + Math.random() * 45)
-      } else if (stage === 1) {
-        stage = 2
-        outChars = 0
-        timer = window.setTimeout(tick, 90)
-      } else {
-        outChars += 1
-        if (outChars > step.out.length) {
-          lineIdx += 1
-          cmdChars = 0
-          outChars = 0
-          stage = 0
-          timer = window.setTimeout(tick, 460)
-          return
-        }
-        timer = window.setTimeout(tick, 28)
-      }
-
-      paint()
-    }
-
-    paint()
-    timer = window.setTimeout(tick, 500)
-    return () => window.clearTimeout(timer)
-  }, [])
-
-  return (
     <pre
+      ref={gridRef}
+      aria-hidden
       className={cn(
-        'overflow-hidden font-mono text-[11px] leading-relaxed whitespace-pre text-foreground/85 sm:text-xs',
+        'm-0 overflow-hidden whitespace-pre font-mono text-foreground/90 selection:bg-transparent',
         className,
       )}
-    >
-      <code
-        ref={(el) => {
-          codeRef.current = el
-        }}
-      />
-      <span
-        aria-hidden
-        className="ml-px inline-block h-[0.95em] w-[0.5em] translate-y-[0.12em] bg-foreground/80 align-baseline motion-safe:animate-[blink_1.1s_steps(1,end)_infinite]"
-      />
-    </pre>
+    />
   )
 }

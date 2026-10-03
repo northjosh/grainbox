@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ArrowRight, Loader2, Terminal } from 'lucide-react'
 
-import { AsciiTerminal, SandBoxArt } from '@/components/ascii-art'
+import { SandBoxArt } from '@/components/ascii-art'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -108,9 +108,7 @@ function LoginPage() {
               </p>
             </div>
 
-            <div className="rounded-lg border border-white/10 bg-black/40 p-4 backdrop-blur-sm">
-              <AsciiTerminal />
-            </div>
+
           </div>
 
           <p className="font-mono text-xs text-white/40">
