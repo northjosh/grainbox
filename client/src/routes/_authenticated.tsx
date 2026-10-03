@@ -9,7 +9,7 @@ import { useServerStore, useSessionStore } from '@/lib/store'
 
 /**
  * Authenticated dashboard layout. Guards all signed-in routes and provides
- * the sidebar shell + top bar.
+ * a fixed sidebar on the left, a top bar, and an Outlet for nested routes.
  */
 export const Route = createFileRoute('/_authenticated')({
   component: AuthenticatedLayout,
@@ -52,35 +52,33 @@ function AuthenticatedLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background relative">
+      {/* Top bar – fixed */}
+      <header className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b bg-background/95 supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open sidebar"
+        >
+          <Menu className="size-5" />
+        </Button>
+
+        <div className="flex items-center gap-4">
+          <h1 className="text-sm font-semibold tracking-tight sm:text-base">
+            Dashboard
+          </h1>
+        </div>
+      </header>
+
+      {/* Fixed sidebar on the left */}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex min-h-screen w-full flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 sm:px-6 lg:px-8">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="lg:hidden"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open sidebar"
-          >
-            <Menu className="size-5" />
-          </Button>
-
-          <div className="flex flex-1 items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <h1 className="text-sm font-semibold tracking-tight sm:text-base">
-                Dashboard
-              </h1>
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-7xl space-y-6 p-4 sm:p-6 lg:p-8">
-            <Outlet />
-          </div>
-        </main>
+      {/* Main content – fills remaining space, uses TanStack Outlet */}
+      <div className="flex-1 overflow-y-auto ml-72 pt-20">
+        <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+          <Outlet />
+        </div>
       </div>
     </div>
   )
