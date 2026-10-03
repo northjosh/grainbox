@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
+
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { login, signup, writeIdentity } from '@/lib/auth'
 
@@ -201,13 +201,6 @@ function LoginPage() {
               {!pending ? <ArrowRight /> : null}
             </Button>
           </form>
-
-          <div className="space-y-3">
-            <Separator />
-            <p className="text-center text-xs text-muted-foreground">
-              Sessions last 1 hour. Cookies are httpOnly and SameSite=Strict.
-            </p>
-          </div>
         </div>
       </div>
     </div>
