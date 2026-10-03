@@ -1,0 +1,10 @@
+allowBuilds:
+  esbuild: set this to true or false
+packages:
+  - client
+  - srv
+catalog:
+  typescript: ^7.0.2
+  "@types/node": ^26.6.4
+
+
