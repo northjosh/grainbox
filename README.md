@@ -77,8 +77,6 @@ The client proxies API requests to `/api/*` through Vite to the server on port 3
 - Session-based authentication
 - Ephemeral microVM sandbox execution
 - Run history persisted locally
-- Theme switching (light/dark)
-- ASCII art login background
 - Real-time server health monitoring
 - Keyboard shortcuts (⌘/Ctrl+Enter to run, Esc to cancel)
 
