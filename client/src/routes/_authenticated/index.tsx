@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
-import { Activity, Terminal } from 'lucide-react'
+import { Activity, TerminalSquare, X } from 'lucide-react'
 
 import { HistoryList } from '@/components/history-list'
 import { OutputPanel } from '@/components/output-panel'
 import { RunForm } from '@/components/run-form'
+import { SandboxManager } from '@/components/sandbox-manager'
+import { Term } from '@/components/term'
 import { StatsCards } from '@/components/dashboard/stats-cards'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -14,12 +18,14 @@ import {
 } from '@/components/ui/card'
 import { useRunHotkeys } from '@/lib/use-run-hotkeys'
 
+
 export const Route = createFileRoute('/_authenticated/')({
   component: DashboardHome,
 })
 
 function DashboardHome() {
   useRunHotkeys()
+  const [terminalSandbox, setTerminalSandbox] = useState<string | null>(null)
 
   return (
     <div className="space-y-6">
@@ -38,7 +44,7 @@ function DashboardHome() {
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Terminal className="size-4" />
+              <TerminalSquare className="size-4" />
               Quick Run
             </CardTitle>
             <CardDescription>
@@ -85,6 +91,35 @@ function DashboardHome() {
           <OutputPanel />
         </CardContent>
       </Card>
+
+      <SandboxManager onOpenTerminal={setTerminalSandbox} />
+
+      {terminalSandbox ? (
+        <Card className="gap-0 overflow-hidden py-0">
+          <div className="flex items-center gap-3 border-b px-5 py-3">
+            <div className="mr-auto min-w-0">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <TerminalSquare className="size-4" />
+                <span className="truncate">{terminalSandbox}</span>
+              </CardTitle>
+              <CardDescription>Interactive shell</CardDescription>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Close terminal"
+              title="Close terminal"
+              onClick={() => setTerminalSandbox(null)}
+            >
+              <X />
+            </Button>
+          </div>
+          <CardContent className="bg-[#111411] p-3">
+            <Term key={terminalSandbox} sandboxName={terminalSandbox} />
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   )
 }

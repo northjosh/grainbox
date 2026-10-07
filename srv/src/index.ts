@@ -1,13 +1,16 @@
-import { serve } from "@hono/node-server";
+import { serve, upgradeWebSocket } from "@hono/node-server";
 import { Sandbox } from "microsandbox";
 import { Context, Hono } from "hono";
 import { login, logout, signup } from "./lib/auth.js";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-import type { Session, User } from "../db/schema.js";
+import { sandboxes, type Session, type User } from "../db/schema.js";
 import { logger } from 'hono/logger'
 import { generateSandboxName } from "./lib/generate-name.js";
 import { validateCommand, validateImage, validateName, validateSession } from "./middleware.js";
 import { SESSION_TTL_SECONDS } from "./constants.js";
+import { db } from "../db/db.js";
+import { and, eq } from "drizzle-orm";
+import { WebSocketServer } from "ws";
 
 type Variables = {
     session: Session
@@ -46,6 +49,7 @@ app.post("/login", async (c) => {
 });
 
 app.use("*", validateSession)
+
 app.get("/session", (c) => {
     const user = c.get('user');
     return c.json({ user: user })
@@ -56,7 +60,6 @@ app.post("/logout", async (c) => {
     if (session) {
         await logout(session)
     }
-
     deleteCookie(c, SESSION_COOKIE)
     return c.json({ success: "true" })
 });
@@ -94,8 +97,9 @@ app.post("/test", validateImage, validateCommand,
                     setTimeout(() => reject(new Error("Timeout")), TIMEOUT_MS),
                 ),
             ]);
-
-            return c.text(out.stdout());
+            const res = out.stdout()
+            sb.destroy()
+            return c.text(res);
         } catch (e) {
             console.log(e);
             const isTimeout = e instanceof Error && e.message === "Timeout";
@@ -109,49 +113,149 @@ app.post("/test", validateImage, validateCommand,
 
 app.post("/sandboxes", async (c) => {
     const { name, image } = await c.req.json()
+    const user = c.get("user")
+    const memory = 512
+    const cpu = 1
     if (!name || !NAME_RE.test(name)) return c.json({ error: "name not mehh" }, 400);
 
     if (!image || !ALLOWED_IMAGES.has(image)) return c.json({ error: "image not allowed" }, 400);
 
-    const existing = (await Sandbox.list()).sandboxes.filter((h: any) => h.name?.startsWith(PREFIX));
+    const existing = await db.query.sandboxes.findMany({
+        where: (sandboxes, { eq }) => eq(sandboxes.user, user.id),
+        columns: { id: true },
+    });
 
     if (existing.length >= MAX_SANDBOXES) return c.json({ error: "sandbox limit reached" }, 429);
 
+    let sandbox: Sandbox | undefined;
     try {
-        const sandbox = await Sandbox.builder(PREFIX + name)
+        sandbox = await Sandbox.builder(PREFIX + name)
             .image(image)
-            .cpus(1)
-            .memory(512)
+            .cpus(cpu)
+            .memory(memory)
             .create();
-        await sandbox.detach(); // keep it running after this request
-        return c.json({ name, image }, 201);
+        const [record] = await db.insert(sandboxes).values({
+            name,
+            user: user.id,
+            image,
+            status: "running",
+            memory,
+            cpu,
+        }).returning();
+        await sandbox.detach();
+        return c.json({ sandbox: record }, 201);
     } catch (err) {
+        if (sandbox) await sandbox.destroy().catch(() => undefined);
         return c.json({ error: "create failed (name may already exist)" }, 500)
     }
 });
 
 // List
 app.get("/sandboxes", async (c) => {
-    const handles = await Sandbox.list();
-    const res = handles.sandboxes
-        .filter((h: any) => h.name?.startsWith(PREFIX))
-        .map((h: any) => ({ name: h.name.slice(PREFIX.length), status: h.status }));
-
-    return c.json({ results: res })
+    const user = c.get("user")
+    const query = c.req.query("q")?.trim();
+    const results = await db.query.sandboxes.findMany({
+        where: (sandboxes, { and, eq, like }) => query
+            ? and(eq(sandboxes.user, user.id), like(sandboxes.name, `%${query}%`))
+            : eq(sandboxes.user, user.id),
+    })
+    return c.json({ results })
 });
 
-// Run a command in an existing sandbox
-app.post("/sandboxes/:name/exec", async (c) => {
+app.get("/sandboxes/:name/ws", upgradeWebSocket(async (c) => {
     const name = c.req.param('name')
+    const user = c.get("user")
+    let sb: Sandbox;
+
+    if (!name) throw new Error("Missing sandbox name");
+
+    const sandbox = await db.query.sandboxes.findFirst({
+        where: (sandboxes, { and, eq }) => and(eq(sandboxes.name, name), eq(sandboxes.user, user.id))
+    })
+
+    if (!sandbox) throw new Error("Sandbox not found");
+
+    const handle = await Sandbox.get(PREFIX + sandbox?.name);
+    sb = await handle.startDetached();
+
+    const process = await sb.execStreamWith("/bin/sh", (e) => {
+        return e.args(["-i"]).tty(true).stdinPipe();
+    })
+    const stdin = await process.takeStdin();
+
+    return {
+        onOpen(_evt, ws) {
+            void (async () => {
+                const decoders = {
+                    stdout: new TextDecoder(),
+                    stderr: new TextDecoder()
+                };
+
+                try {
+                    for await (const event of process) {
+                        if (event.kind === "stdout" || event.kind === 'stderr') {
+                            const text = decoders[event.kind].decode(event.data, {
+                                stream: true
+                            })
+                            if (text) ws.send(text)
+                        } else if (event.kind == "exited") {
+                            for (const decoder of Object.values(decoders)) {
+                                const tail = decoder.decode()
+                                if (tail) ws.send(tail)
+                            }
+                            ws.send(JSON.stringify({ type: "exit", code: event.code }))
+                            break;
+
+                        }
+                    }
+                } catch { 
+                    ws.close(1011, "Shell process failed")
+                }
+            })()
+        },
+        async onMessage(evt, ws) {
+            try {
+                if (typeof evt.data !== "string") return;
+                const message = JSON.parse(evt.data);
+                if (message.type === 'input' && typeof message.data === "string") {
+                    await stdin?.write(message.data)
+                }
+                else if (message.type === "resize" && Number.isInteger(message.rows) && Number.isInteger(message.cols) && message.rows > 0 && message.cols > 0) {
+                    await process.resize(message.rows, message.cols)
+                }
+            } catch(e) {
+
+                console.log(e)
+
+            }
+        },
+        async onClose() {
+            await process.kill().catch(() => undefined)
+        }
+    }
+}));
+
+// Run a command in an existing sandbox
+app.post("/sandboxes/:name/exec", validateCommand, async (c) => {
+    const name = c.req.param('name')
+    const user = c.get('user')
     const { command } = await c.req.json();
     let sb;
+
+    const sandbox = await db.query.sandboxes.findFirst({
+        where: (sandboxes, { and, eq }) => and(eq(sandboxes.name, name), eq(sandboxes.user, user.id))
+    })
+
+    if (!sandbox) {
+        return c.json({ error: "sanbox not found" }, 404)
+    }
+
     try {
-        const handle = await Sandbox.get(PREFIX + name);
+        const handle = await Sandbox.get(PREFIX + sandbox?.name);
         sb = await handle.connectOrStart();
     } catch {
         return c.json({ error: "no such sandbox" }, 400)
     }
-
     try {
         const out = await Promise.race([
             sb.shell(command),
@@ -165,25 +269,41 @@ app.post("/sandboxes/:name/exec", async (c) => {
 });
 
 // Stop and delete
-app.delete("/sandboxes/:name", validateName, async (c) => {
-    const { name } = await c.req.json()
+app.delete("/sandboxes/:name", async (c) => {
+    const name = c.req.param("name")
+    const user = c.get('user')
+    const [record] = await db.select({ id: sandboxes.id, })
+        .from(sandboxes)
+        .where(and(eq(sandboxes.name, name), eq(sandboxes.user, user.id)))
+        .limit(1)
+    if (!record) return c.json({ error: "sandbox not found" }, 404)
 
     try {
         const handle = await Sandbox.get(PREFIX + name);
-        await handle.stop();
-        await Sandbox.remove(PREFIX + name);
-        // delete in the db too
-        return c.text("ok")
+        await handle.destroy();
+        await db.delete(sandboxes).where(eq(sandboxes.id, record.id))
+        return c.json({ success: true })
     } catch (err) {
         return c.json({ error: "no such sandbox" }, 404)
     }
 
 });
 
+app.onError((err, c) => {
+  console.error("ROUTE ERROR:", err);
+  return c.json({ error: err.message }, 500);
+});
+
+const wss = new WebSocketServer({ noServer: true })
+
+
 serve(
     {
         fetch: app.fetch,
         port: 3001,
+        websocket:{
+            server: wss
+        }
     },
     (info) => {
         console.log(`Server is running on http://localhost:${info.port}`);

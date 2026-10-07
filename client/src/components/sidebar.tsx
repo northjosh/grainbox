@@ -27,7 +27,7 @@ const navItems = [
     icon: LayoutDashboard,
   },
   {
-    to: '/',
+    to: '/runs',
     label: 'Runs',
     icon: History,
     exact: true,

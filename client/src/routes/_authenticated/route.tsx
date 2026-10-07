@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Outlet, useNavigate } from '@tanstack/react-router'
 import { createFileRoute } from '@tanstack/react-router'
-import { Menu, Terminal } from 'lucide-react'
+import { Menu, TerminalSquare } from 'lucide-react'
 
-import { Sidebar } from '@/components/sidebar'
+import { AppSidebar } from '@/components/app-sidebar'
+import { SidebarProvider } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
 import { useServerStore, useSessionStore } from '@/lib/store'
 
@@ -13,6 +14,10 @@ import { useServerStore, useSessionStore } from '@/lib/store'
  */
 export const Route = createFileRoute('/_authenticated')({
   component: AuthenticatedLayout,
+  beforeLoad: () => {
+    // check session
+  },
+  loader: () => <div>Loading...</div>
 })
 
 function AuthenticatedLayout() {
@@ -44,7 +49,7 @@ function AuthenticatedLayout() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Terminal className="size-4 animate-pulse" />
+          <TerminalSquare className="size-4 animate-pulse" />
           Checking session…
         </div>
       </div>
@@ -52,34 +57,35 @@ function AuthenticatedLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background relative">
-      {/* Top bar – fixed */}
-      <header className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b bg-background/95 supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setSidebarOpen(true)}
-          aria-label="Open sidebar"
-        >
-          <Menu className="size-5" />
-        </Button>
+    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
+      <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        <div className="flex items-center gap-4">
-          <h1 className="text-sm font-semibold tracking-tight sm:text-base">
-            Dashboard
-          </h1>
-        </div>
-      </header>
+      <div className="flex flex-1 flex-col">
+        {/* Top bar */}
+        <header className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b bg-background/95 supports-[backdrop-filter]:bg-background/60 px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open sidebar"
+          >
+            <Menu className="size-5" />
+          </Button>
 
-      {/* Fixed sidebar on the left */}
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <div className="flex items-center gap-4">
+            <h1 className="text-sm font-semibold tracking-tight sm:text-base">
+              Dashboard
+            </h1>
+          </div>
+        </header>
 
-      {/* Main content – fills remaining space, uses TanStack Outlet */}
-      <div className="flex-1 overflow-y-auto ml-72 pt-20">
-        <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
-          <Outlet />
-        </div>
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto pt-16">
+          <div className="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
+            <Outlet />
+          </div>
+        </main>
       </div>
-    </div>
+    </SidebarProvider>
   )
 }

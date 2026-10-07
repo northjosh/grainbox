@@ -7,8 +7,8 @@ import { eq } from "drizzle-orm";
 export async function signup({ name, email, password }: { name: string, email: string, password: string }) {
     const
         { salt, hash } = hashPassword(password);
-    const user = await db.insert(users).values({ name, email, password: hash, salt }).returning()
-    return await generateSession(user[0].id);
+    const [user] = await db.insert(users).values({ name, email, password: hash, salt }).returning()
+    return await generateSession(user.id);
 
 }
 
@@ -35,7 +35,7 @@ export async function logout(sessionId: string) {
     if (!sesh) {
         throw new Error("session not found")
     }
-    await db.delete(sessions).where(eq(sessions.sessionToken, sessionId)).limit(1)
+    await db.delete(sessions).where(eq(sessions.sessionToken, sessionId))
 }
 
 function hashPassword(password: string) {

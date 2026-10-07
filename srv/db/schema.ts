@@ -41,6 +41,8 @@ export const sandboxes = d.sqliteTable('sandboxes', {
     name: d.text().$default(() => generateSandboxName()),
     user: d.text().references((): d.AnySQLiteColumn => users.id),
     memory: d.integer().default(512),
+    image: d.text(),
+    status: d.text().$type<"active" | "running" | "not_running">().default("running"),
     cpu: d.integer().default(1),
     createdAt: d.text().$defaultFn(() => new Date().toISOString()).notNull(),
     emephemeral: d.integer({ mode: 'boolean' }).default(true)

@@ -16,7 +16,9 @@
     "client/*",
     "srv/*"
   ],
-  "scripts": {},
+  "scripts": {
+    "dev": " cd client && pnpm dev && cd ../srv && pnpm dev"
+  },
   "packageManager": "pnpm@12.8.1",
   "type": "module",
   "devDependencies": {

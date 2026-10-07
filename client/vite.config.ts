@@ -8,11 +8,14 @@ import tailwindcss from '@tailwindcss/vite'
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  
   server: {
+    allowedHosts : [".trycloudflare.com"],
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'https://bunch-don-advocacy-macintosh.trycloudflare.com',
         changeOrigin: true,
+        ws: true
       },
     },
   },

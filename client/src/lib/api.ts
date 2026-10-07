@@ -14,6 +14,16 @@ export interface RunResult {
   durationMs: number
 }
 
+export interface PersistentSandbox {
+  id: string
+  name: string | null
+  image: Image | null
+  status: string | null
+  memory: number | null
+  cpu: number | null
+  createdAt: string
+}
+
 async function readErrorBody(res: Response): Promise<string> {
   const raw = await res.text()
   if (!raw) return res.statusText || 'Request failed'
@@ -54,9 +64,9 @@ export async function runCommand(
     throw aborted
       ? e
       : new Error(
-          'Could not reach the sandbox server. Is `pnpm dev` running in srv/?',
-          { cause: e },
-        )
+        'Could not reach the sandbox server. Is `pnpm dev` running in srv/?',
+        { cause: e },
+      )
   }
 
   const durationMs = Math.round(performance.now() - startedAt)
@@ -85,4 +95,57 @@ export async function checkHealth(signal?: AbortSignal): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(path, init)
+  if (!res.ok) throw new Error(await readErrorBody(res))
+  return res.json() as Promise<T>
+}
+
+export async function listSandboxes(query = ''): Promise<PersistentSandbox[]> {
+  const params = new URLSearchParams()
+  if (query.trim()) params.set('q', query.trim())
+  const suffix = params.size ? `?${params.toString()}` : ''
+  const result = await requestJson<{ results: PersistentSandbox[] }>(
+    `/api/sandboxes${suffix}`,
+  )
+  return result.results
+}
+
+export async function createSandbox(
+  name: string,
+  image: Image,
+): Promise<PersistentSandbox> {
+  const result = await requestJson<{ sandbox: PersistentSandbox }>(
+    '/api/sandboxes',
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name, image }),
+    },
+  )
+  return result.sandbox
+}
+
+export async function executeSandboxCommand(
+  name: string,
+  command: string,
+): Promise<string> {
+  const result = await requestJson<{ stdout: string }>(
+    `/api/sandboxes/${encodeURIComponent(name)}/exec`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ command }),
+    },
+  )
+  return result.stdout
+}
+
+export async function deleteSandbox(name: string): Promise<void> {
+  const res = await fetch(`/api/sandboxes/${encodeURIComponent(name)}`, {
+    method: 'DELETE',
+  })
+  if (!res.ok) throw new Error(await readErrorBody(res))
 }
