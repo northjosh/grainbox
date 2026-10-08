@@ -27,6 +27,7 @@ small proof of concept sanbox platform built on top of [microsanbox](https://git
 
 microsandbox sdk can check and install microsanbox for you on startup with 
 ```
+await ensureRuntime();
 
 ```
 in `srv/src/index.ts`

@@ -1,5 +1,5 @@
 import { serve, upgradeWebSocket } from "@hono/node-server";
-import { Sandbox } from "microsandbox";
+import { ensureRuntime, Sandbox } from "microsandbox";
 import { Context, Hono } from "hono";
 import { login, logout, signup } from "./lib/auth.js";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
@@ -16,6 +16,7 @@ type Variables = {
     session: Session
     user: User
 }
+await ensureRuntime();
 
 const app = new Hono<{ Variables: Variables }>().basePath("/api");
 app.use(logger())
