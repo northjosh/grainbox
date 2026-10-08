@@ -1,5 +1,5 @@
 import { serve, upgradeWebSocket } from "@hono/node-server";
-import { ensureRuntime, Sandbox } from "microsandbox";
+import { ensureRuntime, Sandbox, SandboxStillRunningError } from "microsandbox";
 import { Context, Hono } from "hono";
 import { login, logout, signup } from "./lib/auth.js";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
@@ -7,10 +7,11 @@ import { sandboxes, type Session, type User } from "../db/schema.js";
 import { logger } from 'hono/logger'
 import { generateSandboxName } from "./lib/generate-name.js";
 import { validateCommand, validateImage, validateName, validateSession } from "./middleware.js";
-import { SESSION_TTL_SECONDS } from "./constants.js";
+import { ALLOWED_IMAGES, DEFAULT_CPUS, DEFAULT_MEMORY, EXEC_TIMEOUT_MS, MAX_CONCURRENT, MAX_SANDBOXES, NAME_RE, PREFIX, SESSION_COOKIE, SESSION_TTL_SECONDS, TIMEOUT_MS } from "./constants.js";
 import { db } from "../db/db.js";
 import { and, eq } from "drizzle-orm";
 import { WebSocketServer } from "ws";
+import { serveStatic } from "@hono/node-server/serve-static";
 
 type Variables = {
     session: Session
@@ -18,19 +19,15 @@ type Variables = {
 }
 await ensureRuntime();
 
-const app = new Hono<{ Variables: Variables }>().basePath("/api");
+var app = new Hono<{ Variables: Variables }>()
 app.use(logger())
 
-const ALLOWED_IMAGES = new Set(["python", "debian", "alpine"]);
-const PREFIX = "sbx-";
-const SESSION_COOKIE = "session_id"
-const MAX_CONCURRENT = 3;
-const NAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
-const MAX_SANDBOXES = 5;
-const EXEC_TIMEOUT_MS = 30_000;
-const TIMEOUT_MS = 30_000;
-let running = 0;
 
+let running = 0;
+app.use('/assets/*', serveStatic({ root: './public' }))
+app.get('/', serveStatic({ root: './public/' }))
+
+app = app.basePath("/api")
 
 app.get("/health", (c) => c.json({ ok: true }));
 app.post("/signup", async (c) => {
@@ -112,14 +109,11 @@ app.post("/test", validateImage, validateCommand,
         }
     });
 
-app.post("/sandboxes", async (c) => {
+app.post("/sandboxes", validateName, validateImage ,async (c) => {
     const { name, image } = await c.req.json()
     const user = c.get("user")
-    const memory = 512
-    const cpu = 1
-    if (!name || !NAME_RE.test(name)) return c.json({ error: "name not mehh" }, 400);
-
-    if (!image || !ALLOWED_IMAGES.has(image)) return c.json({ error: "image not allowed" }, 400);
+    const memory = DEFAULT_MEMORY
+    const cpu = DEFAULT_CPUS
 
     const existing = await db.query.sandboxes.findMany({
         where: (sandboxes, { eq }) => eq(sandboxes.user, user.id),
@@ -177,7 +171,15 @@ app.get("/sandboxes/:name/ws", upgradeWebSocket(async (c) => {
     if (!sandbox) throw new Error("Sandbox not found");
 
     const handle = await Sandbox.get(PREFIX + sandbox?.name);
-    sb = await handle.startDetached();
+    try {
+        sb = await handle.startDetached();
+    } catch (e) {
+        if (e instanceof SandboxStillRunningError) {
+            sb = await handle.connect()
+        } else {
+            throw e
+        }
+    }
 
     const process = await sb.execStreamWith("/bin/sh", (e) => {
         return e.args(["-i"]).tty(true).stdinPipe();
@@ -209,7 +211,7 @@ app.get("/sandboxes/:name/ws", upgradeWebSocket(async (c) => {
 
                         }
                     }
-                } catch { 
+                } catch {
                     ws.close(1011, "Shell process failed")
                 }
             })()
@@ -224,7 +226,7 @@ app.get("/sandboxes/:name/ws", upgradeWebSocket(async (c) => {
                 else if (message.type === "resize" && Number.isInteger(message.rows) && Number.isInteger(message.cols) && message.rows > 0 && message.cols > 0) {
                     await process.resize(message.rows, message.cols)
                 }
-            } catch(e) {
+            } catch (e) {
 
                 console.log(e)
 
@@ -291,18 +293,17 @@ app.delete("/sandboxes/:name", async (c) => {
 });
 
 app.onError((err, c) => {
-  console.error("ROUTE ERROR:", err);
-  return c.json({ error: err.message }, 500);
+    console.error("ROUTE ERROR:", err);
+    return c.json({ error: err.message }, 500);
 });
 
 const wss = new WebSocketServer({ noServer: true })
-
 
 serve(
     {
         fetch: app.fetch,
         port: 3001,
-        websocket:{
+        websocket: {
             server: wss
         }
     },

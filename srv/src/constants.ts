@@ -8,3 +8,5 @@ export const MAX_SANDBOXES = 5;
 export const EXEC_TIMEOUT_MS = 30_000;
 export const TIMEOUT_MS = 30_000;
 export const SESSION_TTL_SECONDS = 60 * 60;
+export const DEFAULT_CPUS = 1 // 1 vcpu
+export const DEFAULT_MEMORY = 512; //512 mb

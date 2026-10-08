@@ -35,7 +35,6 @@ in `srv/src/index.ts`
 you can also install it yourself by following the instructions [here](https://github.com/superradcompany/microsandbox#getting-started)
 
 
-
 ### Install dependencies
 
 ```bash
@@ -74,7 +73,6 @@ cd srv && npx tsc --noEmit
 The client proxies API requests to `/api/*` through Vite to the server on port 3001.
 
 ## Features
-
 - Session-based authentication
 - Ephemeral microVM sandbox execution
 - Run history persisted locally
