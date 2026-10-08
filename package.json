@@ -6,8 +6,30 @@
     "microvm",
     "sandbox"
   ],
-  "author": "northjosh",
   "license": "MIT",
+  "author": "northjosh",
+  "workspaces": [
+    "client/*",
+    "srv/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "nx run-many -t dev",
+    "fmt": "oxfmt",
+    "build": "nx run-many -t build",
+    "check-types": "nx run-many -t check-types",
+    "dev:web": "nx run-many -t dev --projects=web",
+    "check": "oxlint && oxfmt --write"
+  },
+  "devDependencies": {
+    "@nx/oxlint": "23.2.1",
+    "@nx/vite": "^23.2.1",
+    "@types/node": "catalog:",
+    "nx": "23.2.1",
+    "oxfmt": "^0.72.0",
+    "oxlint": "^1.61.0",
+    "typescript": "catalog:"
+  },
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
@@ -15,25 +37,5 @@
       "onFail": "download"
     }
   },
-  "workspaces": [
-    "client/*",
-    "srv/*"
-  ],
-  "scripts": {
-    "dev": "nx run-many -t dev",
-    "build": "nx run-many -t build",
-    "check-types": "nx run-many -t check-types",
-    "dev:web": "nx run-many -t dev --projects=web",
-    "check": "oxlint && oxfmt --write"
-  },
-  "packageManager": "pnpm@12.8.1",
-  "type": "module",
-  "devDependencies": {
-    "@nx/oxlint": "23.2.1",
-    "@nx/vite": "^23.2.1",
-    "@types/node": "catalog:",
-    "nx": "23.2.1",
-    "oxlint": "^1.61.0",
-    "typescript": "catalog:"
-  }
+  "packageManager": "pnpm@12.8.1"
 }
