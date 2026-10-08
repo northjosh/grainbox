@@ -1,5 +1,5 @@
 import { serve, upgradeWebSocket } from "@hono/node-server";
-import { ensureRuntime, Sandbox, SandboxStillRunningError, Snapshot } from "microsandbox";
+import { ensureRuntime, Sandbox, SandboxStillRunningError } from "microsandbox";
 import { Context, Hono } from "hono";
 import { login, logout, signup } from "./lib/auth.js";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
@@ -7,13 +7,14 @@ import { sandboxes, type Session, type User } from "../db/schema.js";
 import { logger } from 'hono/logger'
 import { generateSandboxName } from "./lib/generate-name.js";
 import { validateCommand, validateImage, validateName, validateSession } from "./middleware.js";
-import { ALLOWED_IMAGES, DEFAULT_CPUS, DEFAULT_MEMORY, EXEC_TIMEOUT_MS, MAX_CONCURRENT, MAX_SANDBOXES, NAME_RE, PREFIX, SESSION_COOKIE, SESSION_TTL_SECONDS, TIMEOUT_MS } from "./constants.js";
+import { ALLOWED_IMAGES, DEFAULT_CPUS, DEFAULT_MEMORY, EXEC_TIMEOUT_MS, MAX_CONCURRENT, MAX_SANDBOXES, PREFIX, SESSION_COOKIE, SESSION_TTL_SECONDS, TIMEOUT_MS } from "./constants.js";
 import { db } from "../db/db.js";
 import { and, eq } from "drizzle-orm";
 import { WebSocketServer } from "ws";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { createSnapshot, deleteSnapshot, restoreSnapshot } from "./sandbox/snapshots.js";
-import { snapshot } from "node:test";
+import { streamSSE } from "hono/streaming";
+import { randomUUID } from "crypto";
 
 type Variables = {
     session: Session
@@ -111,7 +112,7 @@ app.post("/test", validateImage, validateCommand,
         }
     });
 
-app.post("/sandboxes", validateName, validateImage ,async (c) => {
+app.post("/sandboxes", validateName, validateImage, async (c) => {
     const { name, image } = await c.req.json()
     const user = c.get("user")
     const memory = DEFAULT_MEMORY
@@ -148,19 +149,19 @@ app.post("/sandboxes", validateName, validateImage ,async (c) => {
 });
 
 //snapshots
-app.post("/sandboxes/:sandbox/snapshot" , async (c) => {
+app.post("/sandboxes/:sandbox/snapshot", async (c) => {
     const { name } = await c.req.json()
     const sandbox = c.req.param('sandbox')
     const user = c.get("user")
 
     const existing = await db.query.sandboxes.findFirst({
-        where: (sandboxes, { and , eq }) => and(eq(sandboxes.name, sandbox ), eq(sandboxes.user, user.id)),
+        where: (sandboxes, { and, eq }) => and(eq(sandboxes.name, sandbox), eq(sandboxes.user, user.id)),
         with: {
             user: true
         }
     });
 
-    if(!existing) throw new Error("sandbox not found")
+    if (!existing) throw new Error("sandbox not found")
 
     try {
         const snapshot = await createSnapshot(existing, name)
@@ -170,7 +171,7 @@ app.post("/sandboxes/:sandbox/snapshot" , async (c) => {
     }
 });
 
-app.post("/snapshots/:id/restore" , async (c) => {
+app.post("/snapshots/:id/restore", async (c) => {
     const { name } = await c.req.json()
     const id = c.req.param('id')
     const user = c.get("user")
@@ -182,11 +183,11 @@ app.post("/snapshots/:id/restore" , async (c) => {
     }
 });
 
-app.delete("/snapshots/:id" , async (c) => {
+app.delete("/snapshots/:id", async (c) => {
     const name = c.req.param('id')
     const user = c.get("user")
     try {
-         await deleteSnapshot(name, user)
+        await deleteSnapshot(name, user)
         return c.json({ message: "snapshot deleted" }, 200);
     } catch (err) {
         return c.json({ error: "snapshot delete failed" }, 500)
@@ -316,6 +317,29 @@ app.post("/sandboxes/:name/exec", validateCommand, async (c) => {
     } catch (err) {
         const timedOut = err instanceof Error && err.message === "timeout";
         return timedOut ? c.json({ error: "timed out image" }, 504) : c.json({ error: "exec failed" }, 500)
+    }
+});
+
+app.post("/sandboxes/:name/log-stream", async (c) => {
+    const name = c.req.param('name')
+    const user = c.get('user')
+    const sandbox = await db.query.sandboxes.findFirst({
+        where: (sandboxes, { and, eq }) => and(eq(sandboxes.name, name), eq(sandboxes.user, user.id))
+    })
+
+    if (!sandbox) {
+        return c.json({ error: "sanbox not found" }, 404)
+    }
+    try {
+        return streamSSE(c, async (stream) => {
+            const handle = await Sandbox.get(PREFIX + sandbox?.name);
+            const logStream = await handle.logStream({ follow: true });
+            for await (const s of logStream) {
+                await stream.writeSSE({ id: randomUUID(), data: s.text().trimEnd(), event: 'log-stream' })
+            }
+        })
+    } catch {
+        return c.json({ error: "no such sandbox" }, 400)
     }
 });
 
