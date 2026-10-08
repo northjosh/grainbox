@@ -1,31 +1,35 @@
-"use client"
+"use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { LogOutIcon, SettingsIcon, UserIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/dropdown-menu";
+import { LogOutIcon, SettingsIcon, UserIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface User {
-  name: string
-  email: string
-  avatar?: string
+  name: string;
+  email: string;
+  avatar?: string;
 }
 
 interface NavUserProps {
-  user: User
+  user: User;
 }
 
 export function NavUser({ user }: NavUserProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger>
-        <button className={cn("flex w-full items-center gap-3 rounded-md px-3 py-2 hover:bg-muted transition-colors")}>
+        <button
+          className={cn(
+            "flex w-full items-center gap-3 rounded-md px-3 py-2 hover:bg-muted transition-colors",
+          )}
+        >
           <Avatar className="size-8">
             <AvatarImage src={user.avatar} alt={user.name} />
             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
@@ -56,5 +60,5 @@ export function NavUser({ user }: NavUserProps) {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

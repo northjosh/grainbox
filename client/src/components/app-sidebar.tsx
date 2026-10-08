@@ -1,21 +1,31 @@
-"use client"
+"use client";
 
-import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+import { NavMain } from "@/components/nav-main";
+import { NavProjects } from "@/components/nav-projects";
+import { NavUser } from "@/components/nav-user";
+import { TeamSwitcher } from "@/components/team-switcher";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
-} from "@/components/ui/sidebar"
-import { AudioLinesIcon, TerminalSquareIcon, BotIcon, BookOpenIcon, Settings2Icon, FrameIcon, PieChartIcon, MapIcon, DatabaseIcon } from "lucide-react"
+} from "@/components/ui/sidebar";
+import {
+  AudioLinesIcon,
+  TerminalSquareIcon,
+  BotIcon,
+  BookOpenIcon,
+  Settings2Icon,
+  FrameIcon,
+  PieChartIcon,
+  MapIcon,
+  DatabaseIcon,
+} from "lucide-react";
 
 interface AppSidebarProps {
-  open: boolean
-  onClose: () => void
+  open: boolean;
+  onClose: () => void;
 }
 
 // This is sample data.
@@ -138,7 +148,7 @@ const data = {
       icon: <MapIcon />,
     },
   ],
-}
+};
 
 export function AppSidebar({ open, onClose, ...props }: AppSidebarProps) {
   return (
@@ -155,5 +165,5 @@ export function AppSidebar({ open, onClose, ...props }: AppSidebarProps) {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
-  )
+  );
 }

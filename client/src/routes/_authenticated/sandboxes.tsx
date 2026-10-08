@@ -1,18 +1,12 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
 
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { PlusIcon, DatabaseIcon } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { PlusIcon, DatabaseIcon } from "lucide-react";
 
-export const Route = createFileRoute('/_authenticated/sandboxes')({
+export const Route = createFileRoute("/_authenticated/sandboxes")({
   component: SandboxesPage,
-})
+});
 
 function SandboxesPage() {
   return (
@@ -23,9 +17,7 @@ function SandboxesPage() {
             <DatabaseIcon className="size-6" />
             Persistent Sandboxes
           </h2>
-          <p className="text-sm text-muted-foreground">
-            Manage long-running sandbox environments.
-          </p>
+          <p className="text-sm text-muted-foreground">Manage long-running sandbox environments.</p>
         </div>
         <Button>
           <PlusIcon className="size-4 mr-2" />
@@ -36,9 +28,7 @@ function SandboxesPage() {
       <Card>
         <CardHeader>
           <CardTitle>Your Sandboxes</CardTitle>
-          <CardDescription>
-            List of persistent sandbox environments.
-          </CardDescription>
+          <CardDescription>List of persistent sandbox environments.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12 text-muted-foreground">
@@ -49,5 +39,5 @@ function SandboxesPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

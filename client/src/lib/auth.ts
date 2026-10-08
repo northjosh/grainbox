@@ -1,8 +1,8 @@
-const IDENTITY_KEY = 'sbx.identity'
+const IDENTITY_KEY = "sbx.identity";
 
 export interface Identity {
-  name: string
-  email: string
+  name: string;
+  email: string;
 }
 
 /**
@@ -12,51 +12,47 @@ export interface Identity {
  */
 export function readIdentity(): Identity | null {
   try {
-    const raw = localStorage.getItem(IDENTITY_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as Partial<Identity>
-    if (typeof parsed.email !== 'string') return null
-    return { name: parsed.name ?? parsed.email, email: parsed.email }
+    const raw = localStorage.getItem(IDENTITY_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<Identity>;
+    if (typeof parsed.email !== "string") return null;
+    return { name: parsed.name ?? parsed.email, email: parsed.email };
   } catch {
-    return null
+    return null;
   }
 }
 
 export function writeIdentity(identity: Identity): void {
-  localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity))
+  localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity));
 }
 
 export function clearIdentity(): void {
-  localStorage.removeItem(IDENTITY_KEY)
+  localStorage.removeItem(IDENTITY_KEY);
 }
 
 async function post(path: string, body: unknown, signal?: AbortSignal) {
-  let res: Response
+  let res: Response;
   try {
     res = await fetch(path, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      method: "POST",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
       signal,
-    })
+    });
   } catch (e) {
-    const aborted = e instanceof DOMException && e.name === 'AbortError'
+    const aborted = e instanceof DOMException && e.name === "AbortError";
     throw aborted
       ? e
-      : new Error('Could not reach the server. Is `pnpm dev` running in srv/?', {
+      : new Error("Could not reach the server. Is `pnpm dev` running in srv/?", {
           cause: e,
-        })
+        });
   }
-  if (!res.ok) throw new Error(await res.text())
-  return res
+  if (!res.ok) throw new Error(await res.text());
+  return res;
 }
 
-export function login(
-  email: string,
-  password: string,
-  signal?: AbortSignal,
-): Promise<Response> {
-  return post('/api/login', { email, password }, signal)
+export function login(email: string, password: string, signal?: AbortSignal): Promise<Response> {
+  return post("/api/login", { email, password }, signal);
 }
 
 export function signup(
@@ -65,23 +61,23 @@ export function signup(
   password: string,
   signal?: AbortSignal,
 ): Promise<Response> {
-  return post('/api/signup', { name, email, password }, signal)
+  return post("/api/signup", { name, email, password }, signal);
 }
 
 export async function logout(): Promise<void> {
   try {
-    await fetch('/api/logout', { method: 'POST' })
+    await fetch("/api/logout", { method: "POST" });
   } finally {
-    clearIdentity()
+    clearIdentity();
   }
 }
 
 /** Resolves true only when the server still accepts the session cookie. */
 export async function isAuthenticated(signal?: AbortSignal): Promise<boolean> {
   try {
-    const res = await fetch('/api/session', { signal })
-    return res.ok
+    const res = await fetch("/api/session", { signal });
+    return res.ok;
   } catch {
-    return false
+    return false;
   }
 }

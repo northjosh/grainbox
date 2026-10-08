@@ -1,63 +1,47 @@
-import { useEffect, useState } from 'react'
-import {
-  CheckCircle2,
-  Copy,
-  Loader2,
-  RotateCcw,
-  Terminal,
-  Timer,
-  XCircle,
-} from 'lucide-react'
+import { useEffect, useState } from "react";
+import { CheckCircle2, Copy, Loader2, RotateCcw, Terminal, Timer, XCircle } from "lucide-react";
 
-import { HistoryList } from '@/components/history-list'
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-import { FAILURE_TITLES, OUTCOME_META } from '@/lib/snippets'
-import { useHistoryStore, useRunnerStore } from '@/lib/store'
+import { HistoryList } from "@/components/history-list";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { FAILURE_TITLES, OUTCOME_META } from "@/lib/snippets";
+import { useHistoryStore, useRunnerStore } from "@/lib/store";
 
 export function OutputPanel() {
-  const status = useRunnerStore((s) => s.status)
-  const result = useRunnerStore((s) => s.result)
-  const error = useRunnerStore((s) => s.error)
-  const image = useRunnerStore((s) => s.image)
-  const clear = useRunnerStore((s) => s.clear)
-  const historyCount = useHistoryStore((s) => s.entries.length)
+  const status = useRunnerStore((s) => s.status);
+  const result = useRunnerStore((s) => s.result);
+  const error = useRunnerStore((s) => s.error);
+  const image = useRunnerStore((s) => s.image);
+  const clear = useRunnerStore((s) => s.clear);
+  const historyCount = useHistoryStore((s) => s.entries.length);
 
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!copied) return
-    const timer = setTimeout(() => setCopied(false), 1500)
-    return () => clearTimeout(timer)
-  }, [copied])
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 1500);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   async function copyOutput() {
-    if (!result?.stdout) return
+    if (!result?.stdout) return;
     try {
-      await navigator.clipboard.writeText(result.stdout)
-      setCopied(true)
+      await navigator.clipboard.writeText(result.stdout);
+      setCopied(true);
     } catch {
-      setCopied(false)
+      setCopied(false);
     }
   }
 
-  const busy = status === 'running'
-  const meta = result ? OUTCOME_META[result.outcome] : null
-  const StatusIcon = meta?.icon
-  const FailureIcon = result && result.outcome !== 'success' ? meta?.icon : null
+  const busy = status === "running";
+  const meta = result ? OUTCOME_META[result.outcome] : null;
+  const StatusIcon = meta?.icon;
+  const FailureIcon = result && result.outcome !== "success" ? meta?.icon : null;
 
   return (
     <Card className="min-h-0 gap-0 py-0">
@@ -67,7 +51,7 @@ export function OutputPanel() {
             <TabsTrigger value="output">Output</TabsTrigger>
             <TabsTrigger value="history">
               History
-              {historyCount > 0 ? ` (${historyCount})` : ''}
+              {historyCount > 0 ? ` (${historyCount})` : ""}
             </TabsTrigger>
           </TabsList>
 
@@ -106,7 +90,7 @@ export function OutputPanel() {
               >
                 {copied ? <CheckCircle2 /> : <Copy />}
               </TooltipTrigger>
-              <TooltipContent>{copied ? 'Copied' : 'Copy'}</TooltipContent>
+              <TooltipContent>{copied ? "Copied" : "Copy"}</TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -141,19 +125,15 @@ export function OutputPanel() {
                 <div className="flex items-center gap-2 text-sm">
                   <Loader2 className="size-4 animate-spin" />
                   Booting microVM
-                  <span className="font-mono text-muted-foreground">
-                    {image}
-                  </span>
+                  <span className="font-mono text-muted-foreground">{image}</span>
                 </div>
                 <Skeleton className="h-4 w-3/4" />
                 <Skeleton className="h-4 w-1/2" />
               </div>
             ) : result ? (
               <div className="grid gap-3">
-                {result.outcome !== 'success' ? (
-                  <Alert
-                    variant={result.outcome === 'error' ? 'destructive' : 'warning'}
-                  >
+                {result.outcome !== "success" ? (
+                  <Alert variant={result.outcome === "error" ? "destructive" : "warning"}>
                     {FailureIcon ? <FailureIcon /> : null}
                     <AlertTitle>{FAILURE_TITLES[result.outcome]}</AlertTitle>
                     <AlertDescription>
@@ -166,17 +146,12 @@ export function OutputPanel() {
                   <pre className="overflow-x-auto rounded-md border bg-muted/40 p-3 font-mono text-sm whitespace-pre-wrap break-words">
                     {result.stdout}
                   </pre>
-                ) : result.outcome === 'success' ? (
-                  <p className="text-sm text-muted-foreground">
-                    Command produced no output.
-                  </p>
+                ) : result.outcome === "success" ? (
+                  <p className="text-sm text-muted-foreground">Command produced no output.</p>
                 ) : null}
               </div>
             ) : (
-              <EmptyState
-                title="No output yet"
-                body="Pick an image and hit Run."
-              />
+              <EmptyState title="No output yet" body="Pick an image and hit Run." />
             )}
           </div>
         </TabsContent>
@@ -186,7 +161,7 @@ export function OutputPanel() {
         </TabsContent>
       </Tabs>
     </Card>
-  )
+  );
 }
 
 function EmptyState({ title, body }: { title: string; body: string }) {
@@ -196,5 +171,5 @@ function EmptyState({ title, body }: { title: string; body: string }) {
       <p className="text-sm font-medium">{title}</p>
       <p className="text-sm text-muted-foreground">{body}</p>
     </div>
-  )
+  );
 }

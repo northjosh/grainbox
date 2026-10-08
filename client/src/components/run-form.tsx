@@ -1,47 +1,37 @@
-import { Loader2, Play, Square } from 'lucide-react'
+import { Loader2, Play, Square } from "lucide-react";
 
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-import { IMAGES, MAX_CONCURRENT, SERVER_TIMEOUT_MS, type Image } from '@/lib/api'
-import { SNIPPETS } from '@/lib/snippets'
-import { useRunnerStore } from '@/lib/store'
-import { useRunHotkeys } from '@/lib/use-run-hotkeys'
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { IMAGES, MAX_CONCURRENT, SERVER_TIMEOUT_MS, type Image } from "@/lib/api";
+import { SNIPPETS } from "@/lib/snippets";
+import { useRunnerStore } from "@/lib/store";
+import { useRunHotkeys } from "@/lib/use-run-hotkeys";
 
 export function RunForm() {
-  const image = useRunnerStore((s) => s.image)
-  const command = useRunnerStore((s) => s.command)
-  const status = useRunnerStore((s) => s.status)
-  const inflight = useRunnerStore((s) => s.inflight)
-  const setImage = useRunnerStore((s) => s.setImage)
-  const setCommand = useRunnerStore((s) => s.setCommand)
-  const run = useRunnerStore((s) => s.run)
-  const cancel = useRunnerStore((s) => s.cancel)
+  const image = useRunnerStore((s) => s.image);
+  const command = useRunnerStore((s) => s.command);
+  const status = useRunnerStore((s) => s.status);
+  const inflight = useRunnerStore((s) => s.inflight);
+  const setImage = useRunnerStore((s) => s.setImage);
+  const setCommand = useRunnerStore((s) => s.setCommand);
+  const run = useRunnerStore((s) => s.run);
+  const cancel = useRunnerStore((s) => s.cancel);
 
-  useRunHotkeys()
+  useRunHotkeys();
 
-  const busy = status === 'running'
-  const atCapacity = inflight >= MAX_CONCURRENT
+  const busy = status === "running";
+  const atCapacity = inflight >= MAX_CONCURRENT;
 
   return (
     <Card>
@@ -51,7 +41,7 @@ export function RunForm() {
           New run
         </CardTitle>
         <CardDescription>
-          Each run boots a fresh microVM. Max {MAX_CONCURRENT} concurrent,{' '}
+          Each run boots a fresh microVM. Max {MAX_CONCURRENT} concurrent,{" "}
           {SERVER_TIMEOUT_MS / 1000}s timeout.
         </CardDescription>
       </CardHeader>
@@ -59,10 +49,7 @@ export function RunForm() {
       <CardContent className="grid gap-4">
         <div className="grid gap-2">
           <Label htmlFor="image">Image</Label>
-          <Select
-            value={image}
-            onValueChange={(value) => setImage(value as Image)}
-          >
+          <Select value={image} onValueChange={(value) => setImage(value as Image)}>
             <SelectTrigger id="image" className="w-full font-mono">
               <SelectValue />
             </SelectTrigger>
@@ -87,8 +74,7 @@ export function RunForm() {
             placeholder="uname -a"
           />
           <p className="text-xs text-muted-foreground">
-            <kbd className="font-mono">⌘</kbd> +{' '}
-            <kbd className="font-mono">↵</kbd> to run,{' '}
+            <kbd className="font-mono">⌘</kbd> + <kbd className="font-mono">↵</kbd> to run,{" "}
             <kbd className="font-mono">esc</kbd> to cancel
           </p>
         </div>
@@ -116,7 +102,7 @@ export function RunForm() {
             onClick={() => void run()}
           >
             {busy ? <Loader2 className="animate-spin" /> : <Play />}
-            {busy ? 'Running' : 'Run'}
+            {busy ? "Running" : "Run"}
           </Button>
           <Tooltip>
             <TooltipTrigger
@@ -137,5 +123,5 @@ export function RunForm() {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

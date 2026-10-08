@@ -1,41 +1,35 @@
-import { Link, useLocation } from '@tanstack/react-router'
-import {
-  Activity,
-  History,
-  LayoutDashboard,
-  Terminal,
-  X,
-} from 'lucide-react'
+import { Link, useLocation } from "@tanstack/react-router";
+import { Activity, History, LayoutDashboard, Terminal, X } from "lucide-react";
 
-import { AccountMenu } from '@/components/account-menu'
-import { HealthBadge } from '@/components/health-badge'
-import { SlotsBadge } from '@/components/slots-badge'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { AccountMenu } from "@/components/account-menu";
+import { HealthBadge } from "@/components/health-badge";
+import { SlotsBadge } from "@/components/slots-badge";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export interface SidebarProps {
-  open: boolean
-  onClose: () => void
-  className?: string
+  open: boolean;
+  onClose: () => void;
+  className?: string;
 }
 
 const navItems = [
   {
-    to: '/',
-    label: 'Dashboard',
+    to: "/",
+    label: "Dashboard",
     icon: LayoutDashboard,
   },
   {
-    to: '/runs',
-    label: 'Runs',
+    to: "/runs",
+    label: "Runs",
     icon: History,
     exact: true,
   },
-] as const
+] as const;
 
 export function Sidebar({ open, onClose, className }: SidebarProps) {
-  const location = useLocation()
+  const location = useLocation();
 
   return (
     <>
@@ -50,17 +44,13 @@ export function Sidebar({ open, onClose, className }: SidebarProps) {
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-in-out lg:static lg:translate-x-0',
-          open ? 'translate-x-0' : '-translate-x-full',
+          "fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r bg-sidebar text-sidebar-foreground transition-transform duration-200 ease-in-out lg:static lg:translate-x-0",
+          open ? "translate-x-0" : "-translate-x-full",
           className,
         )}
       >
         <div className="flex h-16 items-center justify-between border-b px-6">
-          <Link
-            to="/"
-            className="flex items-center gap-2.5"
-            onClick={() => onClose()}
-          >
+          <Link to="/" className="flex items-center gap-2.5" onClick={() => onClose()}>
             <div className="flex size-8 items-center justify-center rounded-md bg-foreground text-background">
               <Terminal className="size-4" />
             </div>
@@ -79,8 +69,8 @@ export function Sidebar({ open, onClose, className }: SidebarProps) {
 
         <nav className="flex-1 space-y-1 px-3 py-4">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.to
-            const Icon = item.icon
+            const isActive = location.pathname === item.to;
+            const Icon = item.icon;
 
             return (
               <Link
@@ -88,17 +78,17 @@ export function Sidebar({ open, onClose, className }: SidebarProps) {
                 to={item.to}
                 onClick={() => onClose()}
                 className={cn(
-                  'group/button inline-flex h-9 w-full shrink-0 items-center justify-start gap-3 rounded-md border border-transparent bg-clip-padding px-3 text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
+                  "group/button inline-flex h-9 w-full shrink-0 items-center justify-start gap-3 rounded-md border border-transparent bg-clip-padding px-3 text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
                   isActive
-                    ? 'bg-secondary text-secondary-foreground'
-                    : 'hover:bg-muted hover:text-foreground',
-                  isActive && 'font-medium',
+                    ? "bg-secondary text-secondary-foreground"
+                    : "hover:bg-muted hover:text-foreground",
+                  isActive && "font-medium",
                 )}
               >
                 <Icon className="size-4" />
                 {item.label}
               </Link>
-            )
+            );
           })}
         </nav>
 
@@ -126,5 +116,5 @@ export function Sidebar({ open, onClose, className }: SidebarProps) {
         </div>
       </aside>
     </>
-  )
+  );
 }

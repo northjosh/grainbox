@@ -1,27 +1,27 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { ChevronDownIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/dropdown-menu";
+import { ChevronDownIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Team {
-  name: string
-  logo: React.ReactNode
-  plan: string
+  name: string;
+  logo: React.ReactNode;
+  plan: string;
 }
 
 interface TeamSwitcherProps {
-  teams: Team[]
+  teams: Team[];
 }
 
 export function TeamSwitcher({ teams }: TeamSwitcherProps) {
-  const [currentTeam, setCurrentTeam] = React.useState(teams[0])
+  const [currentTeam, setCurrentTeam] = React.useState(teams[0]);
 
   return (
     <DropdownMenu>
@@ -29,7 +29,7 @@ export function TeamSwitcher({ teams }: TeamSwitcherProps) {
         <button
           className={cn(
             "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors",
-            "group"
+            "group",
           )}
         >
           <div className="flex size-8 items-center justify-center rounded-md bg-muted">
@@ -49,7 +49,7 @@ export function TeamSwitcher({ teams }: TeamSwitcherProps) {
             onClick={() => setCurrentTeam(team)}
             className={cn(
               "flex items-center gap-2",
-              currentTeam === team && "bg-primary text-primary-foreground"
+              currentTeam === team && "bg-primary text-primary-foreground",
             )}
           >
             <div className="flex size-8 items-center justify-center rounded-md bg-muted">
@@ -63,5 +63,5 @@ export function TeamSwitcher({ teams }: TeamSwitcherProps) {
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
-  )
+  );
 }

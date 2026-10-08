@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import { Link, useLocation } from "@tanstack/react-router"
-import { PlusIcon } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Link, useLocation } from "@tanstack/react-router";
+import { PlusIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Project {
-  name: string
-  url: string
-  icon?: React.ReactNode
+  name: string;
+  url: string;
+  icon?: React.ReactNode;
 }
 
 interface NavProjectsProps {
-  projects: Project[]
+  projects: Project[];
 }
 
 export function NavProjects({ projects }: NavProjectsProps) {
-  const pathname = useLocation()
+  const pathname = useLocation();
 
   return (
     <div className="mt-6 space-y-2">
@@ -42,13 +42,11 @@ export function NavProjects({ projects }: NavProjectsProps) {
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
-            <span className="flex size-5 shrink-0 items-center justify-center">
-              {project.icon}
-            </span>
+            <span className="flex size-5 shrink-0 items-center justify-center">{project.icon}</span>
             {project.name}
           </Link>
         ))}
       </nav>
     </div>
-  )
+  );
 }

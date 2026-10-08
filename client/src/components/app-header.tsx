@@ -1,9 +1,9 @@
-import { Terminal } from 'lucide-react'
+import { Terminal } from "lucide-react";
 
-import { AccountMenu } from '@/components/account-menu'
-import { HealthBadge } from '@/components/health-badge'
-import { SlotsBadge } from '@/components/slots-badge'
-import { ThemeToggle } from '@/components/theme-toggle'
+import { AccountMenu } from "@/components/account-menu";
+import { HealthBadge } from "@/components/health-badge";
+import { SlotsBadge } from "@/components/slots-badge";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function AppHeader() {
   return (
@@ -14,9 +14,7 @@ export function AppHeader() {
         </div>
         <div className="mr-auto">
           <p className="text-sm leading-none font-semibold">sandbox</p>
-          <p className="text-xs leading-none text-muted-foreground">
-            microVM command runner
-          </p>
+          <p className="text-xs leading-none text-muted-foreground">microVM command runner</p>
         </div>
 
         <HealthBadge />
@@ -25,5 +23,5 @@ export function AppHeader() {
         <AccountMenu />
       </div>
     </header>
-  )
+  );
 }
