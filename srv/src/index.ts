@@ -146,7 +146,7 @@ app.post("/sandboxes", validateName, validateImage, async (c) => {
       .returning();
     await sandbox.detach();
     return c.json({ sandbox: record }, 201);
-  } catch (err) {
+  } catch {
     if (sandbox) await sandbox.destroy().catch(() => undefined);
     return c.json({ error: "create failed (name may already exist)" }, 500);
   }
@@ -171,7 +171,7 @@ app.post("/sandboxes/:sandbox/snapshot", async (c) => {
   try {
     const snapshot = await createSnapshot(existing, name);
     return c.json({ snapshot }, 201);
-  } catch (err) {
+  } catch  {
     return c.json({ error: "snapshot failed" }, 500);
   }
 });
@@ -183,7 +183,7 @@ app.post("/snapshots/:id/restore", async (c) => {
   try {
     const sandbox = await restoreSnapshot(id, name, user);
     return c.json({ sandbox: sandbox }, 201);
-  } catch (err) {
+  } catch {
     return c.json({ error: "snapshot restore failed" }, 500);
   }
 });
@@ -194,7 +194,7 @@ app.delete("/snapshots/:id", async (c) => {
   try {
     await deleteSnapshot(name, user);
     return c.json({ message: "snapshot deleted" }, 200);
-  } catch (err) {
+  } catch {
     return c.json({ error: "snapshot delete failed" }, 500);
   }
 });
@@ -272,7 +272,7 @@ app.get(
           }
         })();
       },
-      async onMessage(evt, ws) {
+      async onMessage(evt) {
         try {
           if (typeof evt.data !== "string") return;
           const message = JSON.parse(evt.data);
@@ -372,7 +372,7 @@ app.delete("/sandboxes/:name", async (c) => {
     await handle.destroy();
     await db.delete(sandboxes).where(eq(sandboxes.id, record.id));
     return c.json({ success: true });
-  } catch (err) {
+  } catch  {
     return c.json({ error: "no such sandbox" }, 404);
   }
 });
