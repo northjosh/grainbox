@@ -1,5 +1,5 @@
 import { serve, upgradeWebSocket } from "@hono/node-server";
-import { ensureRuntime, Sandbox, SandboxStillRunningError } from "microsandbox";
+import { ensureRuntime, Sandbox, SandboxStillRunningError, Snapshot } from "microsandbox";
 import { Context, Hono } from "hono";
 import { login, logout, signup } from "./lib/auth.js";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
@@ -12,6 +12,8 @@ import { db } from "../db/db.js";
 import { and, eq } from "drizzle-orm";
 import { WebSocketServer } from "ws";
 import { serveStatic } from "@hono/node-server/serve-static";
+import { createSnapshot, deleteSnapshot, restoreSnapshot } from "./sandbox/snapshots.js";
+import { snapshot } from "node:test";
 
 type Variables = {
     session: Session
@@ -142,6 +144,52 @@ app.post("/sandboxes", validateName, validateImage ,async (c) => {
     } catch (err) {
         if (sandbox) await sandbox.destroy().catch(() => undefined);
         return c.json({ error: "create failed (name may already exist)" }, 500)
+    }
+});
+
+//snapshots
+app.post("/sandboxes/:sandbox/snapshot" , async (c) => {
+    const { name } = await c.req.json()
+    const sandbox = c.req.param('sandbox')
+    const user = c.get("user")
+
+    const existing = await db.query.sandboxes.findFirst({
+        where: (sandboxes, { and , eq }) => and(eq(sandboxes.name, sandbox ), eq(sandboxes.user, user.id)),
+        with: {
+            user: true
+        }
+    });
+
+    if(!existing) throw new Error("sandbox not found")
+
+    try {
+        const snapshot = await createSnapshot(existing, name)
+        return c.json({ snapshot }, 201);
+    } catch (err) {
+        return c.json({ error: "snapshot failed" }, 500)
+    }
+});
+
+app.post("/snapshots/:id/restore" , async (c) => {
+    const { name } = await c.req.json()
+    const id = c.req.param('id')
+    const user = c.get("user")
+    try {
+        const sandbox = await restoreSnapshot(id, name, user)
+        return c.json({ sandbox: sandbox }, 201);
+    } catch (err) {
+        return c.json({ error: "snapshot restore failed" }, 500)
+    }
+});
+
+app.delete("/snapshots/:id" , async (c) => {
+    const name = c.req.param('id')
+    const user = c.get("user")
+    try {
+         await deleteSnapshot(name, user)
+        return c.json({ message: "snapshot deleted" }, 200);
+    } catch (err) {
+        return c.json({ error: "snapshot delete failed" }, 500)
     }
 });
 

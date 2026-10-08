@@ -38,14 +38,24 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
 
 export const sandboxes = d.sqliteTable('sandboxes', {
     id: d.text().$default(() => randomUUIDv7()).primaryKey(),
-    name: d.text().$default(() => generateSandboxName()),
-    user: d.text().references((): d.AnySQLiteColumn => users.id),
+    name: d.text().$default(() => generateSandboxName()).notNull(),
+    user: d.text().references((): d.AnySQLiteColumn => users.id).notNull(),
     memory: d.integer().default(512),
     image: d.text(),
     status: d.text().$type<"active" | "running" | "not_running">().default("running"),
     cpu: d.integer().default(1),
     createdAt: d.text().$defaultFn(() => new Date().toISOString()).notNull(),
     emephemeral: d.integer({ mode: 'boolean' }).default(true)
+}, (table) => [
+    d.uniqueIndex("name_idx").on(table.name)
+]);
+
+export const snapshots = d.sqliteTable('snapshots', {
+    id: d.text().$default(() => randomUUIDv7()).primaryKey(),
+    name: d.text().notNull(),
+    sandbox: d.text().notNull(),
+    user: d.text().references((): d.AnySQLiteColumn => users.id).notNull(),
+    createdAt: d.text().$defaultFn(() => new Date().toISOString()).notNull(),
 }, (table) => [
     d.uniqueIndex("name_idx").on(table.name)
 ]);
@@ -57,9 +67,19 @@ export const sandboxRelations = relations(sandboxes, ({ one }) => ({
     }),
 }));
 
+export const snapshotRelations = relations(snapshots, ({ one }) => ({
+    user: one(users, {
+        fields: [snapshots.user],
+        references: [users.id],
+    }),
+}));
+
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
 export type SandboxRecord = typeof sandboxes.$inferSelect;
 export type NewSandbox = typeof sandboxes.$inferInsert;
+export type SnapshotRecord = typeof snapshots.$inferSelect;
+export type NewSnaphot = typeof snapshots.$inferInsert;
