@@ -1,8 +1,8 @@
 allowBuilds:
-  esbuild: set this to true or false
+  nx: true
 packages:
-  - client
-  - srv
+  - client/*
+  - srv/*
 catalog:
   typescript: ^7.0.2
   "@types/node": ^26.6.4

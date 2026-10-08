@@ -2,7 +2,10 @@
   "name": "grainbox",
   "version": "1.0.0",
   "description": "micro(micro sanboxes)",
-  "keywords": [],
+  "keywords": [
+    "microvm",
+    "sandbox"
+  ],
   "author": "northjosh",
   "license": "MIT",
   "devEngines": {
@@ -17,13 +20,20 @@
     "srv/*"
   ],
   "scripts": {
-    "dev": " cd client && pnpm dev && cd ../srv && pnpm dev"
+    "dev": "nx run-many -t dev",
+    "build": "nx run-many -t build",
+    "check-types": "nx run-many -t check-types",
+    "dev:web": "nx run-many -t dev --projects=web",
+    "check": "oxlint && oxfmt --write"
   },
   "packageManager": "pnpm@12.8.1",
   "type": "module",
   "devDependencies": {
-    "oxlint": "^1.61.0",
+    "@nx/oxlint": "23.2.1",
+    "@nx/vite": "^23.2.1",
     "@types/node": "catalog:",
+    "nx": "23.2.1",
+    "oxlint": "^1.61.0",
     "typescript": "catalog:"
   }
 }

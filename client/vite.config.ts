@@ -10,6 +10,7 @@ const config = defineConfig({
   resolve: { tsconfigPaths: true },
   
   server: {
+    port: 3000,
     allowedHosts : [".trycloudflare.com"],
     proxy: {
       '/api': {
@@ -19,6 +20,7 @@ const config = defineConfig({
       },
     },
   },
+  
   plugins: [
     devtools(),
     tailwindcss(),

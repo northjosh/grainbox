@@ -1,0 +1,60 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals"
+    ],
+    "production": [
+      "default",
+      "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
+      "!{projectRoot}/tsconfig.spec.json"
+    ],
+    "sharedGlobals": []
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "production",
+        "^production"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ],
+      "cache": true
+    },
+    "check-types": {
+      "dependsOn": [
+        "^check-types"
+      ],
+      "inputs": [
+        "default",
+        "^default"
+      ]
+    },
+    "dev": {
+      "cache": false,
+      "dependsOn": [
+        "^dev"
+      ]
+    },
+    "preview": {
+      "dependsOn": [
+        "^preview"
+      ]
+    },
+    "start": {
+      "dependsOn": [
+        "^start"
+      ]
+    }
+  },
+  "analytics": false,
+  "plugins": [
+    "@nx/vite/plugin",
+    "nx/plugins/package-json"
+  ]
+}
