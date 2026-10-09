@@ -76,7 +76,7 @@ func (r *Registry) Dump() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Saved integer-keyed map to file successfully.")
+	fmt.Printf("Saved integer-keyed map to file  to %s\n", filename)
 
 }
 
@@ -86,7 +86,7 @@ func (r *Registry) Load() {
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			fmt.Printf("ports file not found, creating new map")
+			fmt.Print("ports file not found, creating new map \n")
 			r.m = result
 		} else {
 			panic(err)

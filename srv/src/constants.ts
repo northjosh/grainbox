@@ -9,3 +9,5 @@ export const TIMEOUT_MS = 30_000;
 export const SESSION_TTL_SECONDS = 60 * 60;
 export const DEFAULT_CPUS = 1; // 1 vcpu
 export const DEFAULT_MEMORY = 512; //512 mb
+export const MAX_CPUS = 1; // 1 vcpu
+export const MAX_MEMORY = 512; //512 mb

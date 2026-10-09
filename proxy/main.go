@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -16,6 +19,10 @@ func env(k, def string) string {
 }
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer stop()
+
+
 	token := os.Getenv("ADMIN_SECRET")
 
 	if token == "" {
@@ -32,28 +39,45 @@ func main() {
 		ResponseHeaderTimeout: 60 * time.Second,
 	}
 
-	go func() {
-		addr := env("LISTEN_ADDR", "127.0.0.1:9090")
-		log.Printf("admin API on %s", addr)
+	adminAddr := env("ADMIN_LISTEN_ADDR", "127.0.0.1:9090")
+	log.Printf("admin API on %s", adminAddr)
 
-		srv := &http.Server{
-			Addr:              addr,
-			Handler:           AdminHandler(reg, token),
-			ReadHeaderTimeout: 5 * time.Second,
-		}
-		log.Fatal(srv.ListenAndServe())
+	adminSrv := &http.Server{
+		Addr:              adminAddr,
+		Handler:           AdminHandler(reg, token),
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	
+	//admin server
+	go func() {
+		log.Fatal(adminSrv.ListenAndServe())
 		// log.Printf("proxy on %s for *%s", addr, baseDomain)
 	}()
 
-	addr := env("LISTEN_ADDR", "127.0.0.1:8080")
-	log.Printf("proxy on %s for .%s", addr, BaseDomain)
-	srv := &http.Server{
-		Addr:              addr,
+	proxyAddr := env("PROXY_LISTEN_ADDR", "127.0.0.1:8080")
+	log.Printf("proxy on %s for .%s", proxyAddr, BaseDomain)
+	proxySrv := &http.Server{
+		Addr:              proxyAddr,
 		Handler:           &ProxyHandler{reg: reg, transport: transport},
 		ReadHeaderTimeout: 10 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
 
-	log.Fatal(srv.ListenAndServe())
+	// proxy server
+	go func() {
+		log.Fatal(proxySrv.ListenAndServe())
+		// log.Printf("proxy on %s for *%s", addr, baseDomain)
+	}()
+
+
+	<-ctx.Done()
+	log.Print("gracefully shutting down....\n")
+	
+	// dump our registry so we can load it on next start
+	reg.Dump()
+	shutdownctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = proxySrv.Shutdown(shutdownctx)
+	_ = adminSrv.Shutdown(shutdownctx)
 
 }

@@ -132,6 +132,7 @@ app.post("/sandboxes", validateName, validateImage, async (c) => {
       .image(image)
       .cpus(cpu)
       .memory(memory)
+      .port(2001, 80)
       .create();
     const [record] = await db
       .insert(sandboxes)
@@ -171,7 +172,7 @@ app.post("/sandboxes/:sandbox/snapshot", async (c) => {
   try {
     const snapshot = await createSnapshot(existing, name);
     return c.json({ snapshot }, 201);
-  } catch  {
+  } catch {
     return c.json({ error: "snapshot failed" }, 500);
   }
 });
@@ -372,7 +373,7 @@ app.delete("/sandboxes/:name", async (c) => {
     await handle.destroy();
     await db.delete(sandboxes).where(eq(sandboxes.id, record.id));
     return c.json({ success: true });
-  } catch  {
+  } catch {
     return c.json({ error: "no such sandbox" }, 404);
   }
 });
