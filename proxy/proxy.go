@@ -42,25 +42,29 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
-	guestPort, err := strconv.Atoi(m[2])
+	guestPort, err := Base64ToPort(m[2])
 
 	if err != nil || guestPort < minGuestPort || guestPort > maxGuestPort || reservedGuestPorts[guestPort] {
-		http.Error(w, "port not allowed", http.StatusForbidden)
+		http.Error(w, "not found", http.StatusForbidden)
+		log.Print("port not allwed %n", guestPort)
 		return
-
 	}
 
-	id := m[2]
+	id := m[0]
+	hostPort, _ := Base64ToPort(m[1])
 
-	// hostPort, ok := h.reg.Get(id)
+	// checks if port is in registry and matches id to prevent forging and returns not found 
+	if route, ok :=  h.reg.Get(hostPort); ok {
+		if route != id  {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+	} else{
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
 
-	// if !ok {
-	// 	http.Error(w, "sandbox not found", http.StatusNotFound)
-	// 	return
-	// }
-	hostPort := m[1]
-
-	target := &url.URL{Scheme: "http", Host: "127.0.0.1:" + hostPort}
+	target := &url.URL{Scheme: "http", Host: "127.0.0.1:" + strconv.Itoa(hostPort)}
 
 	rp := &httputil.ReverseProxy{
 		Transport: h.transport,
