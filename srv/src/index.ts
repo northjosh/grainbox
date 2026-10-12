@@ -26,6 +26,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { createSnapshot, deleteSnapshot, restoreSnapshot } from "./sandbox/snapshots.js";
 import { streamSSE } from "hono/streaming";
 import { randomUUID } from "crypto";
+import { releasePort, setPort } from "./sandbox/networking.js";
 
 type Variables = {
   session: Session;
@@ -76,11 +77,7 @@ app.post("/logout", async (c) => {
 });
 
 app.post("/test", validateImage, validateCommand, async (c) => {
-  console.log("Testinggg");
   const { image, command } = await c.req.json();
-
-  console.log(image);
-
   if (!image || !ALLOWED_IMAGES.has(image)) {
     c.status(400);
     return c.text("This image isn't available");
@@ -127,18 +124,30 @@ app.post("/sandboxes", validateName, validateImage, async (c) => {
   if (existing.length >= MAX_SANDBOXES) return c.json({ error: "sandbox limit reached" }, 429);
 
   let sandbox: Sandbox | undefined;
+  const generated = generateSandboxName()
+  const res = await setPort(generated)
+
+  const port = res["port"]
+  const encodedPort = res["encoded"]
+
+  const msbName = PREFIX + generated
+
   try {
-    sandbox = await Sandbox.builder(PREFIX + name)
+    sandbox = await Sandbox.builder(msbName)
       .image(image)
       .cpus(cpu)
       .memory(memory)
-      .port(2001, 80)
+      .port(port, 80)
+      .label("owner", user.id)
       .create();
     const [record] = await db
       .insert(sandboxes)
       .values({
         name,
         user: user.id,
+        msbName,
+        port,
+        encoded: encodedPort,
         image,
         status: "running",
         memory,
@@ -149,6 +158,7 @@ app.post("/sandboxes", validateName, validateImage, async (c) => {
     return c.json({ sandbox: record }, 201);
   } catch {
     if (sandbox) await sandbox.destroy().catch(() => undefined);
+    releasePort(port)
     return c.json({ error: "create failed (name may already exist)" }, 500);
   }
 });
@@ -228,7 +238,7 @@ app.get(
 
     if (!sandbox) throw new Error("Sandbox not found");
 
-    const handle = await Sandbox.get(PREFIX + sandbox?.name);
+    const handle = await Sandbox.get(sandbox.msbName);
     try {
       sb = await handle.startDetached();
     } catch (e) {
@@ -315,7 +325,7 @@ app.post("/sandboxes/:name/exec", validateCommand, async (c) => {
   }
 
   try {
-    const handle = await Sandbox.get(PREFIX + sandbox?.name);
+    const handle = await Sandbox.get(sandbox.msbName);
     sb = await handle.connectOrStart();
   } catch {
     return c.json({ error: "no such sandbox" }, 400);

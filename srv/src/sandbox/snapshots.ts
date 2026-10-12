@@ -3,7 +3,9 @@ import { randomUUID } from "node:crypto";
 import { sandboxes, snapshots, type SandboxRecord, type User } from "../../db/schema.js";
 import { db } from "../../db/db.js";
 import { and, eq } from "drizzle-orm";
-import { DEFAULT_CPUS, DEFAULT_MEMORY } from "../constants.js";
+import { DEFAULT_CPUS, DEFAULT_MEMORY, PREFIX } from "../constants.js";
+import { generateSandboxName } from "../lib/generate-name.js";
+import { releasePort, setPort } from "./networking.js";
 
 export async function createSnapshot(sandbox: SandboxRecord, name: string | undefined) {
   if (name === undefined) {
@@ -11,7 +13,7 @@ export async function createSnapshot(sandbox: SandboxRecord, name: string | unde
   }
 
   await Snapshot.builder(name)
-    .fromSandbox(sandbox.name)
+    .fromSandbox(sandbox.msbName)
     .label("owner", sandbox.user)
     .full()
     .create();
@@ -53,20 +55,30 @@ export async function restoreSnapshot(id: string, name: string, user: User) {
 
   const cpu = DEFAULT_CPUS;
   const memory = DEFAULT_MEMORY;
+  let record;
 
-  await Sandbox.restore(snap).memory(memory).cpus(cpu).restore();
+  const generated =  generateSandboxName()
 
-  const [record] = await db
-    .insert(sandboxes)
-    .values({
-      name: name,
-      user: user.id,
-      image: snap.imageRef,
-      status: "active",
-      memory,
-      cpu,
-    })
-    .returning();
+  const { port, encodedPort } = await setPort(generated);
+  try {
+    await Sandbox.restore(snap).name(PREFIX + generated).memory(memory).cpus(cpu).port(port, 80).restore();
+    [record] = await db
+      .insert(sandboxes)
+      .values({
+        name: name,
+        user: user.id,
+        msbName: generated,
+        port: port,
+        encoded: encodedPort,
+        image: snap.imageRef,
+        status: "active",
+        memory,
+        cpu,
+      })
+      .returning();
+  } catch {
+    releasePort(port);
+  }
 
   return record;
 }

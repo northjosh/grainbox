@@ -67,13 +67,21 @@ export const sandboxes = d.sqliteTable(
       .text()
       .$default(() => generateSandboxName())
       .notNull(),
+    msbName: d
+      .text()
+      .unique()
+      .$default(() => generateSandboxName())
+      .notNull(),
+    port: d.text().notNull().unique(),
+    encoded: d.text().notNull(),
+    openPorts: d.int(),
     user: d
       .text()
       .references((): d.AnySQLiteColumn => users.id)
       .notNull(),
     memory: d.integer().default(512),
     image: d.text(),
-    status: d.text().$type<"active" | "running" | "not_running">().default("running"),
+    status: d.text().$type<"active" | "running" | "stopped">().default("running"),
     cpu: d.integer().default(1),
     createdAt: d
       .text()
