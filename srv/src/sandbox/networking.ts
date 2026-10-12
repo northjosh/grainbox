@@ -1,0 +1,59 @@
+import { ADMIN_SECRET } from "../constants.js";
+
+export async function getPorts() {
+  try {
+    const res = await fetch(`http://localhost:9090/sandboxes/`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${ADMIN_SECRET} `,
+      },
+    });
+
+    if (!res.ok) {
+      // throw some error
+    }
+    return await res.json();
+  } catch {
+    console.log("error fetching port mappings");
+  }
+}
+
+export async function setPort(id: string) {
+  try {
+    const res = await fetch(`http://localhost:9090/sandboxes/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${ADMIN_SECRET}`,
+      },
+    });
+
+    if (!res.ok) {
+      // throw some error
+       console.log(res)
+    }
+    const response = await res.json()
+    console.log(response)
+    return response
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+export async function releasePort(port: number) {
+  try {
+    const res = await fetch(`http://localhost:9090/sandboxes/${encodeURIComponent(port)}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${ADMIN_SECRET} `,
+      },
+    });
+
+    if (!res.ok) {
+      console.log(res)
+
+      return await res.json();
+    }
+  } catch(e) {
+    console.log(e);
+  }
+}
