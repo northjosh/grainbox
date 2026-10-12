@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"os"
+	"slices"
 	"sync"
 )
 
@@ -26,7 +27,6 @@ func (r *Registry) Get(port int) (string, bool) {
 }
 
 func (r *Registry) Set(id string) (int, error) {
-	port := rand.IntN(max-min+1) + min
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -34,11 +34,12 @@ func (r *Registry) Set(id string) (int, error) {
 		return 0, errors.New("No ports available")
 	}
 
-	port = r.free[len(r.free)-1]
+	index := rand.IntN(0-len(r.free)+1) + 0
+	port := r.free[index]
 	r.free = r.free[:len(r.free)-1]
+	r.free = slices.Delete(r.free, index, index+1)
 	r.m[port] = id
 	return port, nil
-
 }
 
 func (r *Registry) Release(port int) {
@@ -88,6 +89,9 @@ func (r *Registry) Load() {
 		if os.IsNotExist(err) {
 			fmt.Print("ports file not found, creating new map \n")
 			r.m = result
+			for p := min; p <= max; p++ {
+				r.free = append(r.free, p)
+			}
 		} else {
 			panic(err)
 		}
@@ -96,8 +100,12 @@ func (r *Registry) Load() {
 		if err != nil {
 			panic(err)
 		}
-
 		r.m = result
+		for p := min; p <= max; p++ {
+			if result[p] != "" {
+				r.free = append(r.free, p)
+			}
+		}
 		fmt.Println("Ports files loaded")
 	}
 }
