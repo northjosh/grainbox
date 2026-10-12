@@ -9,8 +9,8 @@
   "license": "MIT",
   "author": "northjosh",
   "workspaces": [
-    "client/*",
-    "srv/*"
+    "client",
+    "srv"
   ],
   "type": "module",
   "scripts": {

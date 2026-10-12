@@ -14,7 +14,7 @@ const config = defineConfig({
     allowedHosts: [".trycloudflare.com"],
     proxy: {
       "/api": {
-        target: "https://bunch-don-advocacy-macintosh.trycloudflare.com",
+        target: "http://localhost:3001",
         changeOrigin: true,
         ws: true,
       },

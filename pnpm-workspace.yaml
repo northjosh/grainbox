@@ -1,8 +1,12 @@
 allowBuilds:
   nx: true
+  esbuild: true
+  lightningcss: true
 packages:
-  - client/*
-  - srv/*
+  - 'srv'
+  - 'client'
 catalog:
   typescript: ^7.0.2
   "@types/node": ^26.6.4
+
+ 
