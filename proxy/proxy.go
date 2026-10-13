@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -21,9 +20,9 @@ var reservedGuestPorts = map[int]bool{
 	// 9999: true, // example: your in-guest agent
 }
 
-var idRe = regexp.MustCompile(`^[a-z0-9]{6,32}$`)
-var BaseDomain = os.Getenv("BASE_DOMAIN")
-var hostRe = regexp.MustCompile(`^([a-z0-9]{6,32})\-([a-z0-9]{6,32})-([a-z0-9]{6,32}).` + regexp.QuoteMeta(BaseDomain) + `$`)
+var idRe = regexp.MustCompile(`^[a-z\0-9]-{6,32}$`)
+var BaseDomain = env("BASE_DOMAIN", "grainboxapps.northjosh.com")
+var hostRe = regexp.MustCompile(`^(\d{1,5})\-([a-z0-9\-]{4,30})\-(\d{1,5})\.` + regexp.QuoteMeta(BaseDomain) + `$`)
 
 type ProxyHandler struct {
 	reg       *Registry
@@ -31,6 +30,7 @@ type ProxyHandler struct {
 }
 
 func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Println("Proxyingg......")
 	host := strings.ToLower(r.Host)
 
 	if hh, _, err := net.SplitHostPort(host); err == nil {
@@ -38,11 +38,19 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	m := hostRe.FindStringSubmatch(host)
+	log.Printf("%s\n", m)
+
 	if m == nil {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
-	guestPort, err := Base64ToPort(m[2])
+	
+	id := m[2]
+	hostPort, err:= strconv.Atoi( m[1])
+	guestPort, err := strconv.Atoi(m[3])
+	
+	log.Printf("guest:port %d\n", guestPort)
+	log.Printf("host port: %d\n", hostPort)
 
 	if err != nil || guestPort < minGuestPort || guestPort > maxGuestPort || reservedGuestPorts[guestPort] {
 		http.Error(w, "not found", http.StatusForbidden)
@@ -50,19 +58,17 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := m[0]
-	hostPort, _ := Base64ToPort(m[1])
 
-	// checks if port is in registry and matches id to prevent forging and returns not found 
-	if route, ok :=  h.reg.Get(hostPort); ok {
-		if route != id  {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-	} else{
-		http.Error(w, "not found", http.StatusNotFound)
-		return
-	}
+	// checks if port is in registry and matches id to prevent forging and returns not found
+	// if route, ok := h.reg.Get(hostPort); ok {
+	// 	if route != id {
+	// 		http.Error(w, "not found", http.StatusNotFound)
+	// 		return
+	// 	}
+	// } else {
+	// 	http.Error(w, "not found", http.StatusNotFound)
+	// 	return
+	// }
 
 	target := &url.URL{Scheme: "http", Host: "127.0.0.1:" + strconv.Itoa(hostPort)}
 

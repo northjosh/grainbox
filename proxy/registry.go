@@ -34,7 +34,7 @@ func (r *Registry) Set(id string) (int, error) {
 		return 0, errors.New("No ports available")
 	}
 
-	index := rand.IntN(0-len(r.free)+1) + 0
+	index := rand.IntN(len(r.free)) + 1
 	port := r.free[index]
 	r.free = r.free[:len(r.free)-1]
 	r.free = slices.Delete(r.free, index, index+1)
@@ -92,6 +92,7 @@ func (r *Registry) Load() {
 			for p := min; p <= max; p++ {
 				r.free = append(r.free, p)
 			}
+			fmt.Printf("free ports alloted: %d\n", len(r.free))
 		} else {
 			panic(err)
 		}
@@ -102,10 +103,11 @@ func (r *Registry) Load() {
 		}
 		r.m = result
 		for p := min; p <= max; p++ {
-			if result[p] != "" {
+			if result[p] == "" {
 				r.free = append(r.free, p)
 			}
 		}
+		fmt.Printf("free ports alloted: %d\n", len(r.free))
 		fmt.Println("Ports files loaded")
 	}
 }

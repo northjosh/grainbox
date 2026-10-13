@@ -22,7 +22,6 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
 
-
 	token := os.Getenv("ADMIN_SECRET")
 
 	if token == "" {
@@ -47,7 +46,7 @@ func main() {
 		Handler:           AdminHandler(reg, token),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
-	
+
 	//admin server
 	go func() {
 		log.Fatal(adminSrv.ListenAndServe())
@@ -69,10 +68,9 @@ func main() {
 		// log.Printf("proxy on %s for *%s", addr, baseDomain)
 	}()
 
-
 	<-ctx.Done()
 	log.Print("gracefully shutting down....\n")
-	
+
 	// dump our registry so we can load it on next start
 	reg.Dump()
 	shutdownctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
