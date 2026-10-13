@@ -18,7 +18,7 @@
     "@types/node": "^26.1.1",
     "dotenv": "^18.0.5",
     "drizzle-kit": "^0.31.11",
-    "microsandbox": "^0.7.6",
+    "microsandbox": "^0.7.8",
     "typescript": "catalog:"
   }
 }
