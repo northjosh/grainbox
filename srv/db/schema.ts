@@ -74,7 +74,6 @@ export const sandboxes = d.sqliteTable(
       .notNull(),
     port: d.text().notNull().unique(),
     encoded: d.text().notNull(),
-    openPorts: d.int(),
     user: d
       .text()
       .references((): d.AnySQLiteColumn => users.id)
@@ -89,7 +88,25 @@ export const sandboxes = d.sqliteTable(
       .notNull(),
     emephemeral: d.integer({ mode: "boolean" }).default(true),
   },
-  (table) => [d.uniqueIndex("name_idx").on(table.name)],
+  (table) => [d.uniqueIndex("sandbox_name_idx").on(table.name)],
+);
+
+export const ports = d.sqliteTable(
+  "ports",
+  {
+    id: d
+      .text()
+      .$default(() => randomUUIDv7())
+      .primaryKey(),
+    number: d.text().notNull(),
+    url: d.text().unique(),
+    sandbox: d.text().references(() => sandboxes.id),
+    createdAt: d
+      .text()
+      .$defaultFn(() => new Date().toISOString())
+      .notNull(),
+  },
+  (table) => [d.uniqueIndex("idx_port_sandbox").on(table.number, table.sandbox)],
 );
 
 export const snapshots = d.sqliteTable(
@@ -110,14 +127,15 @@ export const snapshots = d.sqliteTable(
       .$defaultFn(() => new Date().toISOString())
       .notNull(),
   },
-  (table) => [d.uniqueIndex("name_idx").on(table.name)],
+  (table) => [d.uniqueIndex("snapshot_name_idx").on(table.name)],
 );
 
-export const sandboxRelations = relations(sandboxes, ({ one }) => ({
+export const sandboxRelations = relations(sandboxes, ({ one, many }) => ({
   user: one(users, {
     fields: [sandboxes.user],
     references: [users.id],
   }),
+  port: many(ports)
 }));
 
 export const snapshotRelations = relations(snapshots, ({ one }) => ({

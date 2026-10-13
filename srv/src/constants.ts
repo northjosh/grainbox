@@ -1,7 +1,7 @@
 export const ALLOWED_IMAGES = new Set(["python", "debian", "alpine"]);
 export const PREFIX = "sbx-";
 export const SESSION_COOKIE = "session_id";
-export const MAX_CONCURRENT = 3;
+export const MAX_CONCURRENT = 10;
 export const NAME_RE = /^[a-z0-9][a-z0-9-]{1,30}$/;
 export const MAX_SANDBOXES = 5;
 export const EXEC_TIMEOUT_MS = 30_000;
@@ -11,3 +11,5 @@ export const DEFAULT_CPUS = 1; // 1 vcpu
 export const DEFAULT_MEMORY = 512; //512 mb
 export const MAX_CPUS = 1; // 1 vcpu
 export const MAX_MEMORY = 512; //512 mb
+export const MAX_PORTS = 1
+export const BASE_DOMAIN = 'grainboxapps.northjosh.com'
