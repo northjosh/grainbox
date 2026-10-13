@@ -44,11 +44,11 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
-	
+
 	id := m[2]
-	hostPort, err:= strconv.Atoi( m[1])
+	hostPort, err := strconv.Atoi(m[1])
 	guestPort, err := strconv.Atoi(m[3])
-	
+
 	log.Printf("guest:port %d\n", guestPort)
 	log.Printf("host port: %d\n", hostPort)
 
@@ -58,17 +58,16 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	// checks if port is in registry and matches id to prevent forging and returns not found
-	// if route, ok := h.reg.Get(hostPort); ok {
-	// 	if route != id {
-	// 		http.Error(w, "not found", http.StatusNotFound)
-	// 		return
-	// 	}
-	// } else {
-	// 	http.Error(w, "not found", http.StatusNotFound)
-	// 	return
-	// }
+	if route, ok := h.reg.Get(hostPort); ok {
+		if route != id {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+	} else {
+		http.Error(w, "not found", http.StatusNotFound)
+		return
+	}
 
 	target := &url.URL{Scheme: "http", Host: "127.0.0.1:" + strconv.Itoa(hostPort)}
 

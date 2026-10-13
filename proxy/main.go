@@ -53,7 +53,7 @@ func main() {
 		// log.Printf("proxy on %s for *%s", addr, baseDomain)
 	}()
 
-	proxyAddr := env("PROXY_LISTEN_ADDR", "127.0.0.1:8080")
+	proxyAddr := env("PROXY_LISTEN_ADDR", "0.0.0.0:8080") // attach to tailscale interface
 	log.Printf("proxy on %s for .%s", proxyAddr, BaseDomain)
 	proxySrv := &http.Server{
 		Addr:              proxyAddr,
