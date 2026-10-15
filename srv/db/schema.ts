@@ -1,6 +1,6 @@
 import * as d from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
-import { generateSandboxName } from "../src/lib/generate-name.js";
+import { generateSandboxName } from "../src/utils/generate-name.js";
 import { randomUUID, randomUUIDv7 } from "node:crypto";
 import { SESSION_TTL_SECONDS } from "../src/constants.js";
 
@@ -72,8 +72,8 @@ export const sandboxes = d.sqliteTable(
       .unique()
       .$default(() => generateSandboxName())
       .notNull(),
-    port: d.text().notNull().unique(),
-    encoded: d.text().notNull(),
+    hostPort: d.int().notNull().unique(),
+    guestPort: d.int().notNull(),
     user: d
       .text()
       .references((): d.AnySQLiteColumn => users.id)
@@ -135,7 +135,7 @@ export const sandboxRelations = relations(sandboxes, ({ one, many }) => ({
     fields: [sandboxes.user],
     references: [users.id],
   }),
-  port: many(ports)
+  port: many(ports),
 }));
 
 export const snapshotRelations = relations(snapshots, ({ one }) => ({
