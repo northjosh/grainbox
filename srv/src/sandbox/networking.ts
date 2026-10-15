@@ -50,9 +50,8 @@ export async function releasePort(port: number) {
 
     if (!res.ok) {
       console.log(res)
-
-      return await res.json();
     }
+    return;
   } catch(e) {
     console.log(e);
   }
