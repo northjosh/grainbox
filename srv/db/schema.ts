@@ -80,6 +80,7 @@ export const sandboxes = d.sqliteTable(
       .notNull(),
     memory: d.integer().default(512),
     image: d.text(),
+    distro: d.text(),
     status: d.text().$type<"active" | "running" | "stopped">().default("running"),
     cpu: d.integer().default(1),
     createdAt: d
