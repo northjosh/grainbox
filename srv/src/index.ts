@@ -32,7 +32,6 @@ import { createSnapshot, deleteSnapshot, restoreSnapshot } from "./sandbox/snaps
 import { streamSSE } from "hono/streaming";
 import { randomUUID } from "crypto";
 import { releasePort, setPort } from "./sandbox/networking.js";
-import { alpineGateway, debianGateway } from "./lib/init.js";
 
 type Variables = {
   session: Session;
@@ -144,8 +143,6 @@ app.post("/sandboxes", validateName, validateImage, async (c) => {
       .port(port, DEFAULT_GUEST_PORT)
       .patch((p) =>
         p
-          .text("/etc/systemd/system/gb-gaeway.d", debianGateway(DEFAULT_GUEST_PORT))
-          .text("/etc/init.d/gb-gaeway", alpineGateway(DEFAULT_GUEST_PORT))
           .mkdir("/opt/gb", { mode: 0o755 })
           .copyFile(`../init/tini-static`, "/usr/bin/tini", { mode: 0o755 })
           .copyFile(`${GATEWAY_EXECUTABLE_PATH}/gateway`, "/opt/gb/gateway", { mode: 0o755 }),
