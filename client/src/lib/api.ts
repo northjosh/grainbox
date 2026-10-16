@@ -137,3 +137,47 @@ export async function deleteSandbox(name: string): Promise<void> {
   });
   if (!res.ok) throw new Error(await readErrorBody(res));
 }
+
+export interface SandboxPort {
+  id: string;
+  /** Stored as text in the database, so it arrives as a string. */
+  number: string;
+  sandbox: string | null;
+  url: string | null;
+  createdAt: string;
+}
+
+export async function listPorts(name: string): Promise<SandboxPort[]> {
+  const result = await requestJson<{ results: SandboxPort[] }>(
+    `/api/sandboxes/${encodeURIComponent(name)}/ports`,
+  );
+  return result.results;
+}
+
+/** Listener port numbers found on the sandbox that are not exposed yet. */
+export async function pollPorts(name: string): Promise<number[]> {
+  const result = await requestJson<{ res: number[] }>(
+    `/api/sandboxes/${encodeURIComponent(name)}/poll-ports`,
+  );
+  return result.res;
+}
+
+export async function exposePort(name: string, port: number): Promise<SandboxPort> {
+  const result = await requestJson<{ port: SandboxPort }>(
+    `/api/sandboxes/${encodeURIComponent(name)}/ports`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ port }),
+    },
+  );
+  return result.port;
+}
+
+export async function closePort(name: string, id: string): Promise<void> {
+  const res = await fetch(
+    `/api/sandboxes/${encodeURIComponent(name)}/ports/${encodeURIComponent(id)}`,
+    { method: "DELETE" },
+  );
+  if (!res.ok) throw new Error(await readErrorBody(res));
+}

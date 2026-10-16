@@ -13,7 +13,8 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedRunsRouteImport } from './routes/_authenticated/runs'
-import { Route as AuthenticatedSandboxesRouteImport } from './routes/_authenticated/sandboxes'
+import { Route as AuthenticatedSandboxesIndexRouteImport } from './routes/_authenticated/sandboxes/index'
+import { Route as AuthenticatedSandboxesNameRouteImport } from './routes/_authenticated/sandboxes/$name'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -34,44 +35,55 @@ const AuthenticatedRunsRoute = AuthenticatedRunsRouteImport.update({
   path: '/runs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedSandboxesRoute = AuthenticatedSandboxesRouteImport.update({
-  id: '/sandboxes',
-  path: '/sandboxes',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
+const AuthenticatedSandboxesIndexRoute =
+  AuthenticatedSandboxesIndexRouteImport.update({
+    id: '/sandboxes/',
+    path: '/sandboxes/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSandboxesNameRoute =
+  AuthenticatedSandboxesNameRouteImport.update({
+    id: '/sandboxes/$name',
+    path: '/sandboxes/$name',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/runs': typeof AuthenticatedRunsRoute
-  '/sandboxes': typeof AuthenticatedSandboxesRoute
+  '/sandboxes/$name': typeof AuthenticatedSandboxesNameRoute
+  '/sandboxes/': typeof AuthenticatedSandboxesIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/runs': typeof AuthenticatedRunsRoute
-  '/sandboxes': typeof AuthenticatedSandboxesRoute
   '/': typeof AuthenticatedIndexRoute
+  '/sandboxes/$name': typeof AuthenticatedSandboxesNameRoute
+  '/sandboxes': typeof AuthenticatedSandboxesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/runs': typeof AuthenticatedRunsRoute
-  '/_authenticated/sandboxes': typeof AuthenticatedSandboxesRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/sandboxes/$name': typeof AuthenticatedSandboxesNameRoute
+  '/_authenticated/sandboxes/': typeof AuthenticatedSandboxesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/runs' | '/sandboxes'
+  fullPaths: '/' | '/login' | '/runs' | '/sandboxes/$name' | '/sandboxes/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/runs' | '/sandboxes' | '/'
+  to: '/login' | '/runs' | '/' | '/sandboxes/$name' | '/sandboxes'
   id:
     | '__root__'
     | '/_authenticated'
     | '/login'
     | '/_authenticated/runs'
-    | '/_authenticated/sandboxes'
     | '/_authenticated/'
+    | '/_authenticated/sandboxes/$name'
+    | '/_authenticated/sandboxes/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -109,11 +121,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRunsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/sandboxes': {
-      id: '/_authenticated/sandboxes'
+    '/_authenticated/sandboxes/': {
+      id: '/_authenticated/sandboxes/'
       path: '/sandboxes'
-      fullPath: '/sandboxes'
-      preLoaderRoute: typeof AuthenticatedSandboxesRouteImport
+      fullPath: '/sandboxes/'
+      preLoaderRoute: typeof AuthenticatedSandboxesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/sandboxes/$name': {
+      id: '/_authenticated/sandboxes/$name'
+      path: '/sandboxes/$name'
+      fullPath: '/sandboxes/$name'
+      preLoaderRoute: typeof AuthenticatedSandboxesNameRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
   }
@@ -121,14 +140,16 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedRunsRoute: typeof AuthenticatedRunsRoute
-  AuthenticatedSandboxesRoute: typeof AuthenticatedSandboxesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedSandboxesNameRoute: typeof AuthenticatedSandboxesNameRoute
+  AuthenticatedSandboxesIndexRoute: typeof AuthenticatedSandboxesIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRunsRoute: AuthenticatedRunsRoute,
-  AuthenticatedSandboxesRoute: AuthenticatedSandboxesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedSandboxesNameRoute: AuthenticatedSandboxesNameRoute,
+  AuthenticatedSandboxesIndexRoute: AuthenticatedSandboxesIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
