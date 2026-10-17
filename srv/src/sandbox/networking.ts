@@ -39,6 +39,49 @@ export async function setPort(id: string) {
   }
 }
 
+export async function registerRoute(id: string, hostPort: string | number, guestPort: string | number ) {
+  try {
+    const res = await fetch(`http://localhost:9090/register/${encodeURIComponent(hostPort)}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${ADMIN_SECRET}`,
+      },
+      body: JSON.stringify({guestPort, id})
+    });
+
+    if (!res.ok) {
+      // throw some error
+       console.log(res)
+    }
+    const response = await res.json()
+    console.log(response)
+    return response
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+export async function deregisterRoute(id: string) {
+  try {
+    const res = await fetch(`http://localhost:9090/register/${encodeURIComponent(id)}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${ADMIN_SECRET}`,
+      },
+    }); 
+
+    if (!res.ok) {
+      // throw some error
+       console.log(res)
+    }
+    const response = await res.json()
+    console.log(response)
+    return response
+  } catch (e) {
+    console.log(e);
+  }
+}
+
 export async function releasePort(port: number) {
   try {
     const res = await fetch(`http://localhost:9090/sandboxes/${encodeURIComponent(port)}`, {
