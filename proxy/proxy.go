@@ -53,7 +53,7 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("host port: %d\n", hostPort)
 
 	if err != nil || guestPort < minGuestPort || guestPort > maxGuestPort || reservedGuestPorts[guestPort] {
-		http.Error(w, "not found", http.StatusForbidden)
+		http.Error(w, "port not allowed", http.StatusForbidden)
 		log.Print("port not allwed %n", guestPort)
 		return
 	}
@@ -61,7 +61,8 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// checks if port is in registry and matches id to prevent forging and returns not found
 	if route, ok := h.reg.Get(hostPort); ok {
 		if route != id {
-			http.Error(w, "not found", http.StatusNotFound)
+			log.Printf("route:%s, id: %s", route, id)
+			http.Error(w, "not found in registry", http.StatusNotFound)
 			return
 		}
 	} else {
@@ -82,6 +83,7 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					pr.Out.Header[k] = v
 				}
 			}
+			log.Printf("proxying to sandbox=%s port=%d %s", id, guestPort, target.String())
 
 			pr.Out.Header.Set("X-Target-Port", strconv.Itoa(guestPort))
 		},
