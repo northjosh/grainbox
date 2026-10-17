@@ -5,7 +5,7 @@ import { login, logout, signup } from "./lib/auth.js";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { ports, sandboxes, type Session, type User } from "../db/schema.js";
 import { logger } from "hono/logger";
-import { generateSandboxName } from "./utils/generate-name.js";
+import { generateSandboxName, generateUrlName } from "./utils/generate-name.js";
 import { validateCommand, validateImage, validateName, validateSession } from "./middleware.js";
 import {
   ALLOWED_IMAGES,
@@ -31,7 +31,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { createSnapshot, deleteSnapshot, restoreSnapshot } from "./sandbox/snapshots.js";
 import { streamSSE } from "hono/streaming";
 import { randomUUID } from "crypto";
-import { releasePort, setPort } from "./sandbox/networking.js";
+import { registerRoute, releasePort, setPort } from "./sandbox/networking.js";
 
 type Variables = {
   session: Session;
@@ -145,9 +145,14 @@ app.post("/sandboxes", validateName, validateImage, async (c) => {
         p
           .mkdir("/opt/gb", { mode: 0o755 })
           .copyFile(`../init/tini-static`, "/usr/bin/tini", { mode: 0o755 })
+          .copyFile(`../ports/ports`, "/usr/bin/ports", { mode: 0o755 })
           .copyFile(`${GATEWAY_EXECUTABLE_PATH}/gateway`, "/opt/gb/gateway", { mode: 0o755 }),
       )
-      .script("start-gateway", `#!/bin/sh\n tini -- /opt/gb/gateway --port ${DEFAULT_GUEST_PORT} \n`)
+      .script(
+        "start-gateway",
+        `#!/bin/sh\n tini -- /opt/gb/gateway --port ${DEFAULT_GUEST_PORT} \n`,
+      )
+      .script("scan-ports", `#!/bin/sh\n /usr/bin/ports\n`)
       .script("check-shell", `#!/bin/sh\n grep ^ID= /etc/os-release | cut -d= -f2 `)
       .label("owner", user.id)
       // .init("auto")
@@ -167,11 +172,11 @@ app.post("/sandboxes", validateName, validateImage, async (c) => {
       })
       .returning();
     const distro = (await sandbox.shell("check-shell")).stdout().trim();
-    await sandbox.shell("start-gateway");
     await db.update(sandboxes).set({ distro }).where(eq(sandboxes.id, record.id));
+    const job = await sandbox.execDetached("start-gateway");
+    console.log(job.id);
     await sandbox.detach();
     return c.json({ sandbox: record }, 201);
-
   } catch (e) {
     console.log(e);
     if (sandbox) await sandbox.destroy().catch(() => undefined);
@@ -335,7 +340,6 @@ app.get(
       return e.args(["-i"]).tty(true).stdinPipe();
     });
     const stdin = await process.takeStdin();
-
     return {
       onOpen(_evt, ws) {
         void (async () => {
@@ -426,7 +430,7 @@ app.post("/sandboxes/:name/exec", validateCommand, async (c) => {
   }
 });
 
-app.post("/sandboxes/:name/log-stream", async (c) => {
+app.get("/sandboxes/:name/log-stream", async (c) => {
   const name = c.req.param("name");
   const user = c.get("user");
   const sandbox = await db.query.sandboxes.findFirst({
@@ -469,6 +473,53 @@ app.get("/sandboxes/:name/ports", async (c) => {
   return c.json({ results });
 });
 
+app.get("/sandboxes/:name/ports", async (c) => {
+  const name = c.req.param("name");
+  const user = c.get("user");
+  const sandbox = await db.query.sandboxes.findFirst({
+    where: (sandboxes, { and, eq }) => and(eq(sandboxes.name, name), eq(sandboxes.user, user.id)),
+  });
+
+  if (!sandbox) {
+    return c.json({ error: "sanbox not found" }, 404);
+  }
+
+  const results = await db.query.ports.findMany({
+    where: (ports, { eq }) => eq(ports.sandbox, sandbox.id),
+  });
+
+  return c.json({ results });
+});
+
+app.get("/sandboxes/:name/poll-ports", async (c) => {
+  const name = c.req.param("name");
+  const user = c.get("user");
+  const sandbox = await db.query.sandboxes.findFirst({
+    where: (sandboxes, { and, eq }) => and(eq(sandboxes.name, name), eq(sandboxes.user, user.id)),
+    with: {
+      ports: true,
+    },
+  });
+
+  if (!sandbox) {
+    return c.json({ error: "sanbox not found" }, 404);
+  }
+
+  
+  try {
+    const handle = await Sandbox.get(sandbox.msbName);
+    const sb = await handle.connectOrStart();
+    const scanned = JSON.parse((await sb.shell("scan-ports")).stdout()) as number[];
+    const registered = new Set(sandbox.ports.map((port) => Number(port.number)));
+    const res = scanned.filter((port) => !registered.has(Number(port)));
+    return c.json({ res });
+  } catch (e) {
+    console.error(e);
+    return c.json({ error: "an error occured" }, 404);
+
+  }
+}); 
+
 //new port
 app.post("/sandboxes/:name/ports", async (c) => {
   const name = c.req.param("name");
@@ -478,7 +529,7 @@ app.post("/sandboxes/:name/ports", async (c) => {
   const sandbox = await db.query.sandboxes.findFirst({
     where: (sandboxes, { and, eq }) => and(eq(sandboxes.name, name), eq(sandboxes.user, user.id)),
     with: {
-      port: true,
+      ports: true,
     },
   });
 
@@ -486,14 +537,14 @@ app.post("/sandboxes/:name/ports", async (c) => {
     return c.json({ error: "sandbox not found" }, 404);
   }
 
-  if (sandbox.port.length > MAX_PORTS) {
+  if (sandbox.ports.length >= MAX_PORTS) {
     return c.json({ error: "too many ports open for this sandbox" }, 429);
   }
 
-  // we can call our control plane for a host port for multiple ports. for now we stick to one
-  const url = `${sandbox.hostPort}-${sandbox.msbName}-${sandbox.guestPort}.${BASE_DOMAIN}`;
-
   try {
+    const id = generateUrlName()
+    registerRoute(id, sandbox.hostPort, port)
+    const url = `${id}.${BASE_DOMAIN}`;
     const [newPort] = await db
       .insert(ports)
       .values({ number: port, sandbox: sandbox.id, url })
