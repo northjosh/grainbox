@@ -1,4 +1,4 @@
-import { Loader2, RefreshCw, X } from "lucide-react";
+import { ExternalLink, Loader2, RefreshCw, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { portHref } from "./port-url";
@@ -47,26 +47,30 @@ export function PortsPanel({ sandboxName }: { sandboxName: string }) {
             <div key={port.id} className="flex items-center gap-2 py-1">
               <span className="text-foreground">{port.number}</span>
               <span className="text-success">exposed</span>
-              {href ? (
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="min-w-0 truncate text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              <div className="ml-auto flex items-center gap-1">
+                {href ? (
+                  <a
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={port.url ?? undefined}
+                    aria-label={`Open ${port.url}`}
+                    className="rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground [&_svg]:size-3.5"
+                  >
+                    <ExternalLink />
+                  </a>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => void close(port)}
+                  disabled={working !== null}
+                  title={`Close port ${port.number}`}
+                  aria-label={`Close port ${port.number}`}
+                  className="rounded-sm p-1 text-muted-foreground transition-colors hover:text-destructive disabled:opacity-40 [&_svg]:size-3.5"
                 >
-                  {port.url}
-                </a>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => void close(port)}
-                disabled={working !== null}
-                title={`Close port ${port.number}`}
-                aria-label={`Close port ${port.number}`}
-                className="ml-auto rounded-sm p-1 text-muted-foreground transition-colors hover:text-destructive disabled:opacity-40 [&_svg]:size-3.5"
-              >
-                {working === port.id ? <Loader2 className="animate-spin" /> : <X />}
-              </button>
+                  {working === port.id ? <Loader2 className="animate-spin" /> : <X />}
+                </button>
+              </div>
             </div>
           );
         })}

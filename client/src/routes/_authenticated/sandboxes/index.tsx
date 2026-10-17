@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated/sandboxes/")({
 });
 
 function SandboxesPage() {
-  const { sandboxes, loading, error, refresh, remove } = useSandboxes();
+  const { sandboxes, loading, working, error, refresh, start, stop, remove } = useSandboxes();
   const navigate = useNavigate();
 
   return (
@@ -48,7 +48,14 @@ function SandboxesPage() {
         </p>
       ) : null}
 
-      <SandboxList sandboxes={sandboxes} loading={loading} onDelete={(s) => void remove(s)} />
+      <SandboxList
+        sandboxes={sandboxes}
+        loading={loading}
+        working={working}
+        onStart={(s) => void start(s)}
+        onStop={(s) => void stop(s)}
+        onDelete={(s) => void remove(s)}
+      />
     </div>
   );
 }
