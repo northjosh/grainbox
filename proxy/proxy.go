@@ -22,7 +22,9 @@ var reservedGuestPorts = map[int]bool{
 
 var idRe = regexp.MustCompile(`^[a-z\0-9]-{6,32}$`)
 var BaseDomain = env("BASE_DOMAIN", "grainboxapps.northjosh.com")
-var hostRe = regexp.MustCompile(`^(\d{1,5})\-([a-z0-9\-]{4,30})\-(\d{1,5})\.` + regexp.QuoteMeta(BaseDomain) + `$`)
+
+// var hostRe = regexp.MustCompile(`^(\d{1,5})\-([a-z0-9\-]{4,30})\-(\d{1,5})\.` + regexp.QuoteMeta(BaseDomain) + `$`)
+var hostRe = regexp.MustCompile(`^([a-z0-9\-]{4,30})\.` + regexp.QuoteMeta(BaseDomain) + `$`)
 
 type ProxyHandler struct {
 	reg       *Registry
@@ -41,36 +43,28 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s\n", m)
 
 	if m == nil {
+		http.Error(w, "no route found", http.StatusNotFound)
+		return
+	}
+
+	id := m[1]
+
+	route, ok := h.reg.GetRoute(id)
+	log.Printf("route: %v, ok: %v", route, ok)
+
+	if !ok {
 		http.Error(w, "not found", http.StatusNotFound)
 		return
 	}
 
-	id := m[2]
-	hostPort, err := strconv.Atoi(m[1])
-	guestPort, err := strconv.Atoi(m[3])
-
-	log.Printf("guest:port %d\n", guestPort)
-	log.Printf("host port: %d\n", hostPort)
-
-	if err != nil || guestPort < minGuestPort || guestPort > maxGuestPort || reservedGuestPorts[guestPort] {
+	if route.GuestPort < minGuestPort || route.GuestPort > maxGuestPort || reservedGuestPorts[route.GuestPort] {
 		http.Error(w, "port not allowed", http.StatusForbidden)
-		log.Print("port not allwed %n", guestPort)
+		log.Print("port not allwed %n", route.GuestPort)
 		return
 	}
 
-	// checks if port is in registry and matches id to prevent forging and returns not found
-	if route, ok := h.reg.Get(hostPort); ok {
-		if route != id {
-			log.Printf("route:%s, id: %s", route, id)
-			http.Error(w, "not found in registry", http.StatusNotFound)
-			return
-		}
-	} else {
-		http.Error(w, "not found", http.StatusNotFound)
-		return
-	}
-
-	target := &url.URL{Scheme: "http", Host: "127.0.0.1:" + strconv.Itoa(hostPort)}
+	
+	target := &url.URL{Scheme: "http", Host: "127.0.0.1:" + strconv.Itoa(route.HostPort)}
 
 	rp := &httputil.ReverseProxy{
 		Transport: h.transport,
@@ -83,12 +77,12 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					pr.Out.Header[k] = v
 				}
 			}
-			log.Printf("proxying to sandbox=%s port=%d %s", id, guestPort, target.String())
+			log.Printf("proxying to sandbox=%s port=%d %s", id, route.GuestPort, target.String())
 
-			pr.Out.Header.Set("X-Target-Port", strconv.Itoa(guestPort))
+			pr.Out.Header.Set("X-Target-Port", strconv.Itoa(route.GuestPort))
 		},
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			log.Printf("proxy error sandbox=%s port=%d: %v", id, guestPort, err)
+			log.Printf("proxy error sandbox=%s port=%d: %v", id, route.GuestPort, err)
 			http.Error(w, "app not reachable (is it running?)", http.StatusBadGateway)
 		},
 	}

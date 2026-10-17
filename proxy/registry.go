@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math/rand/v2"
 	"os"
 	"slices"
@@ -13,10 +14,22 @@ import (
 var min, max = 35000, 40000
 var filename = "ports.json"
 
+type Mapping struct {
+	HostPort  int `json:"host_port"`
+	GuestPort int `json:"guest_port"`
+}
+
 type Registry struct {
-	mu   sync.Mutex
-	m    map[int]string
-	free []int
+	mu     sync.Mutex
+	m      map[int]string
+	routes map[string]Mapping
+	free   []int
+}
+
+func (r *Registry) Deregister(id string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.routes, id)
 }
 
 func (r *Registry) Get(port int) (string, bool) {
@@ -42,27 +55,46 @@ func (r *Registry) Set(id string) (int, error) {
 	return port, nil
 }
 
+func (r *Registry) Register(id string, hostPort, guestPort int) (bool, error) {
+
+	if _, exists := r.routes[id]; exists {
+		return false, fmt.Errorf("route already exists for id %s", id)
+	}
+
+	if hostPort < min || hostPort > max {
+		return false, fmt.Errorf("host port %d is out of range (%d-%d)", hostPort, min, max)
+	}
+
+	r.routes[id] = Mapping{
+		HostPort:  hostPort,
+		GuestPort: guestPort,
+	}
+	return true, nil
+}
+
+func (r *Registry) GetRoute(id string) (Mapping, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	route, exists := r.routes[id]
+	return route, exists
+}
+
 func (r *Registry) Release(port int) {
 	r.mu.Lock()
-
 	if _, exists := r.m[port]; exists {
 		delete(r.m, port)
 		r.free = append(r.free, port)
 	}
-
 	r.mu.Unlock()
-
 }
 
 func (r *Registry) Snapshot() map[int]string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	out := make(map[int]string, len(r.m))
-	for k, v := range r.m {
-		out[k] = v
-	}
+	maps.Copy(out, r.m)
 	return out
-
 }
 
 func (r *Registry) Dump() {
@@ -83,6 +115,7 @@ func (r *Registry) Dump() {
 
 func (r *Registry) Load() {
 	result := make(map[int]string)
+	r.routes = make(map[string]Mapping)
 
 	data, err := os.ReadFile(filename)
 	if err != nil {
@@ -110,4 +143,5 @@ func (r *Registry) Load() {
 		fmt.Printf("free ports alloted: %d\n", len(r.free))
 		fmt.Println("Ports files loaded")
 	}
+
 }
