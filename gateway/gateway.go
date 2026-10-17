@@ -28,6 +28,7 @@ func (h *Gateway) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	if targetPort == h.listen {
 		http.Error(w, "port not allowed", http.StatusBadGateway)
+		return
 	}
 
 	target := &url.URL{Scheme: "http", Host: "127.0.0.1:" + strconv.Itoa(targetPort)}
