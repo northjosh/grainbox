@@ -74,6 +74,41 @@ export const NAMES: readonly string[] = [
   "star-destroyer",
 ];
 
+const adjectives = [
+  "blitzing", "agile", "kinetic", "hyper", "cyber", "neural", "quantum",
+  "headless", "serverless", "modular", "atomic", "baremetal", "virtual",
+  "orbital", "galactic", "stellar", "rebel", "imperial", "rogue", "covert",
+  "stealthy", "rapid", "swift", "dynamic", "static", "active", "idle",
+  "remote", "local", "dual", "quad", "octa", "deep", "compact", "massive",
+  "micro", "nano", "macro", "heavy", "light", "dark", "open", "closed",
+  "resilient", "distributed", "concurrent", "parallel", "asynchronous"
+];
+
+const nouns = [
+  // Sports & Conditioning
+  "blitz", "punt", "sprint", "draft", "huddle", "scrum", "tackle",
+  "pitch", "relay", "marathon", "bracket", "roster", "playbook", "heat",
+  // Hardware, Systems & Home Lab
+  "monolith", "shard", "vault", "proxy", "trace", "sandbox", "hash",
+  "pointer", "netboot", "rotor", "diode", "ping", "bash", "cluster",
+  "node", "rack", "switch", "packet", "frame", "cache", "buffer", "queue",
+  "stack", "heap", "thread", "core", "array", "raid", "daemon", "kernel",
+  "socket", "subnet", "gateway", "firmware", "pipeline", "hypervisor",
+  // Star Wars
+  "kyber", "holocron", "hoth", "endor", "orbit", "jedi", "sith", "droid",
+  "falcon", "empire", "republic", "saber", "blaster", "hyperdrive",
+  "naboo", "tatooine", "mandalore", "coruscant", "padawan", "cantina"
+];
+
+// Helper to generate a random URL-friendly combination
+export const generateUrlName = () => {
+  const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const randomNoun = nouns[Math.floor(Math.random() * nouns.length)];
+  return `${randomAdj}-${randomNoun}-${randomUUID().slice(0, 8)}`;
+};
+
+// Example output: "serverless-cantina" or "blitzing-holocron"
+console.log(generateUrlName());
 export function generateSandboxName(): string {
   const base = NAMES[randomInt(NAMES.length)];
   return `${base}-${randomUUID().slice(0, 8)}`;
