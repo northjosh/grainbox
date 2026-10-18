@@ -4,7 +4,6 @@ import { Context, Hono } from "hono";
 import { login, logout, signup } from "./lib/auth.js";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { ports, sandboxes, type Session, type User } from "../db/schema.js";
-import { logger } from "hono/logger";
 import { generateSandboxName, generateUrlName } from "./utils/generate-name.js";
 import { validateCommand, validateImage, validateName, validateSession } from "./middleware.js";
 import {
@@ -32,22 +31,29 @@ import { createSnapshot, deleteSnapshot, restoreSnapshot } from "./sandbox/snaps
 import { streamSSE } from "hono/streaming";
 import { randomUUID } from "crypto";
 import { registerRoute, releasePort, setPort } from "./sandbox/networking.js";
+import { evlogMiddleware } from "./evlog.js";
+import type { EvlogVariables } from "evlog/hono";
+import * as Sentry from "@sentry/hono/node"
+import { initSentry } from "../sentry.config.js";
 
 type Variables = {
   session: Session;
   user: User;
+  log: EvlogVariables
 };
+
+initSentry()
 await ensureRuntime();
 
 var app = new Hono<{ Variables: Variables }>();
-app.use(logger());
+app.use(evlogMiddleware)
+app.use(Sentry.sentry(app))
 
 let running = 0;
 app.use("/assets/*", serveStatic({ root: "./public" }));
 app.get("/", serveStatic({ root: "./public/" }));
 
 app = app.basePath("/api");
-
 app.get("/health", (c) => c.json({ ok: true }));
 app.post("/signup", async (c) => {
   const { name, email, password } = await c.req.json();
@@ -138,24 +144,24 @@ app.post("/sandboxes", validateName, validateImage, async (c) => {
   try {
     sandbox = await Sandbox.builder(msbName)
       .image(image)
+      // .imageWith((i) => i.disk(").fstype("ext4"))
       .cpus(cpu)
       .memory(memory)
       .port(port, DEFAULT_GUEST_PORT)
       .patch((p) =>
         p
           .mkdir("/opt/gb", { mode: 0o755 })
-          .copyFile(`../init/tini-static`, "/usr/bin/tini", { mode: 0o755 })
+          // .copyFile(`../init/tini-static`, "/usr/bin/tini", { mode: 0o755 })
           .copyFile(`../ports/ports`, "/usr/bin/ports", { mode: 0o755 })
           .copyFile(`${GATEWAY_EXECUTABLE_PATH}/gateway`, "/opt/gb/gateway", { mode: 0o755 }),
       )
       .script(
         "start-gateway",
-        `#!/bin/sh\n tini -- /opt/gb/gateway --port ${DEFAULT_GUEST_PORT} \n`,
+        `#!/bin/sh\n /opt/gb/gateway --port ${DEFAULT_GUEST_PORT} \n`,
       )
       .script("scan-ports", `#!/bin/sh\n /usr/bin/ports\n`)
       .script("check-shell", `#!/bin/sh\n grep ^ID= /etc/os-release | cut -d= -f2 `)
       .label("owner", user.id)
-      // .init("auto")
       .create();
     const [record] = await db
       .insert(sandboxes)
@@ -164,7 +170,7 @@ app.post("/sandboxes", validateName, validateImage, async (c) => {
         user: user.id,
         msbName,
         hostPort: port,
-        guestPort: DEFAULT_GUEST_PORT, /// or generate a random port with randomPort()
+        guestPort: DEFAULT_GUEST_PORT, // or generate a random port with randomPort()
         image,
         status: "running",
         memory,
@@ -173,8 +179,7 @@ app.post("/sandboxes", validateName, validateImage, async (c) => {
       .returning();
     const distro = (await sandbox.shell("check-shell")).stdout().trim();
     await db.update(sandboxes).set({ distro }).where(eq(sandboxes.id, record.id));
-    const job = await sandbox.execDetached("start-gateway");
-    console.log(job.id);
+    // await sandbox.execDetached("start-gateway");
     await sandbox.detach();
     return c.json({ sandbox: record }, 201);
   } catch (e) {
@@ -185,7 +190,7 @@ app.post("/sandboxes", validateName, validateImage, async (c) => {
   }
 });
 
-// start
+// starts
 app.put("/sandboxes/:name/start", async (c) => {
   const name = c.req.param("name");
   const user = c.get("user");
@@ -240,8 +245,8 @@ app.delete("/sandboxes/:name", async (c) => {
 
   try {
     const handle = await Sandbox.get(record.msbName);
-    handle.stop();
-    handle.destroy();
+    await handle.stop();
+    await handle.destroy();
     await db.delete(sandboxes).where(eq(sandboxes.id, record.id));
     return c.json({ success: true });
   } catch {
@@ -250,6 +255,17 @@ app.delete("/sandboxes/:name", async (c) => {
 });
 
 //snapshots
+
+app.get("/snapshots", async (c) => {
+  const user = c.get("user");
+
+  const snapshots = await db.query.snapshots.findMany({
+    where: (snapshots, { eq }) => eq(snapshots.user, user.id),
+  });
+
+  return c.json({ snapshots });
+});
+
 app.post("/sandboxes/:sandbox/snapshot", async (c) => {
   const { name } = await c.req.json();
   const sandbox = c.req.param("sandbox");
@@ -266,9 +282,10 @@ app.post("/sandboxes/:sandbox/snapshot", async (c) => {
   if (!existing) throw new Error("sandbox not found");
 
   try {
-    const snapshot = await createSnapshot(existing, name);
+    const snapshot = await createSnapshot(existing, existing.user.id,  name);
     return c.json({ snapshot }, 201);
-  } catch {
+  } catch(e) {
+    console.error(e)
     return c.json({ error: "snapshot failed" }, 500);
   }
 });
@@ -280,7 +297,8 @@ app.post("/snapshots/:id/restore", async (c) => {
   try {
     const sandbox = await restoreSnapshot(id, name, user);
     return c.json({ sandbox: sandbox }, 201);
-  } catch {
+  } catch (e) {
+    console.error(e)
     return c.json({ error: "snapshot restore failed" }, 500);
   }
 });
@@ -291,7 +309,8 @@ app.delete("/snapshots/:id", async (c) => {
   try {
     await deleteSnapshot(name, user);
     return c.json({ message: "snapshot deleted" }, 200);
-  } catch {
+  } catch (e){
+    console.error(e)
     return c.json({ error: "snapshot delete failed" }, 500);
   }
 });
@@ -442,7 +461,7 @@ app.get("/sandboxes/:name/log-stream", async (c) => {
   }
   try {
     return streamSSE(c, async (stream) => {
-      const handle = await Sandbox.get(PREFIX + sandbox?.name);
+      const handle = await Sandbox.get(sandbox.msbName);
       const logStream = await handle.logStream({ follow: true });
       for await (const s of logStream) {
         await stream.writeSSE({ id: randomUUID(), data: s.text().trimEnd(), event: "log-stream" });
@@ -505,7 +524,6 @@ app.get("/sandboxes/:name/poll-ports", async (c) => {
     return c.json({ error: "sanbox not found" }, 404);
   }
 
-  
   try {
     const handle = await Sandbox.get(sandbox.msbName);
     const sb = await handle.connectOrStart();
@@ -516,9 +534,8 @@ app.get("/sandboxes/:name/poll-ports", async (c) => {
   } catch (e) {
     console.error(e);
     return c.json({ error: "an error occured" }, 404);
-
   }
-}); 
+});
 
 //new port
 app.post("/sandboxes/:name/ports", async (c) => {
@@ -542,8 +559,8 @@ app.post("/sandboxes/:name/ports", async (c) => {
   }
 
   try {
-    const id = generateUrlName()
-    registerRoute(id, sandbox.hostPort, port)
+    const id = generateUrlName();
+    registerRoute(id, sandbox.hostPort, port);
     const url = `${id}.${BASE_DOMAIN}`;
     const [newPort] = await db
       .insert(ports)
