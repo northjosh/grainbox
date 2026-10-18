@@ -118,6 +118,7 @@ export const snapshots = d.sqliteTable(
       .$default(() => randomUUIDv7())
       .primaryKey(),
     name: d.text().notNull(),
+    msbName: d.text().notNull(),
     sandbox: d.text().notNull(),
     user: d
       .text()

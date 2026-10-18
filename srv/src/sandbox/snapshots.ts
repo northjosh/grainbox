@@ -7,20 +7,21 @@ import { DEFAULT_CPUS, DEFAULT_GUEST_PORT, DEFAULT_MEMORY, PREFIX } from "../con
 import { generateSandboxName } from "../utils/generate-name.js";
 import { releasePort, setPort } from "./networking.js";
 
-export async function createSnapshot(sandbox: SandboxRecord, name: string | undefined) {
+export async function createSnapshot(sandbox: SandboxRecord, user: string, name: string | undefined) {
   if (name === undefined) {
     name = `${sandbox}-${randomUUID().slice(0, 6)}`;
   }
 
+  const msbName = `${sandbox.msbName}:${name}`
   await Snapshot.builder(name)
     .fromSandbox(sandbox.msbName)
-    .label("owner", sandbox.user)
+    .label("owner", user)
     .full()
     .create();
 
   return await db
     .insert(snapshots)
-    .values({ name, sandbox: sandbox.id, user: sandbox.user })
+    .values({ name, sandbox: sandbox.id, msbName,  user })
     .returning();
 }
 
@@ -45,13 +46,14 @@ export async function restoreSnapshot(id: string, name: string, user: User) {
   const [s] = await db
     .select({
       name: snapshots.name,
+      msbName: snapshots.msbName,
     })
     .from(snapshots)
     .where(and(eq(snapshots.id, id), eq(snapshots.user, user.id)))
     .limit(1);
 
   if (!s) throw new Error("Snapshot Not found");
-  const snap = await Snapshot.get(s.name);
+  const snap = await Snapshot.get(s.msbName);
 
   const cpu = DEFAULT_CPUS;
   const memory = DEFAULT_MEMORY;
@@ -64,17 +66,19 @@ export async function restoreSnapshot(id: string, name: string, user: User) {
   const port = res["port"];
   try {
     await Sandbox.restore(snap)
-      .name(PREFIX + generated)
+      .name(name)
       .memory(memory)
       .cpus(cpu)
       .port(port, 80)
       .restore();
+
+
     [record] = await db
       .insert(sandboxes)
       .values({
         name: name,
         user: user.id,
-        msbName: generated,
+        msbName: PREFIX + generated,
         hostPort: port,
         guestPort: DEFAULT_GUEST_PORT,
         image: snap.imageRef,
@@ -83,7 +87,8 @@ export async function restoreSnapshot(id: string, name: string, user: User) {
         cpu,
       })
       .returning();
-  } catch {
+  } catch(e) {
+    console.error(e)
     releasePort(port);
   }
 
