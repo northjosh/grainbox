@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
   deleteSandbox,
@@ -12,27 +12,32 @@ function message(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
 }
 
-export function useSandboxes() {
+export function useSandboxes(query = "") {
   const [sandboxes, setSandboxes] = useState<PersistentSandbox[]>([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const seqRef = useRef(0);
 
   const refresh = useCallback(async () => {
+    const seq = ++seqRef.current;
     setLoading(true);
     setError(null);
     try {
-      setSandboxes(await listSandboxes());
+      const next = await listSandboxes(query);
+      if (seqRef.current !== seq) return;
+      setSandboxes(next);
     } catch (cause) {
-      setError(message(cause));
+      if (seqRef.current === seq) setError(message(cause));
     } finally {
-      setLoading(false);
+      if (seqRef.current === seq) setLoading(false);
     }
-  }, []);
+  }, [query]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const timer = setTimeout(() => void refresh(), query ? 250 : 0);
+    return () => clearTimeout(timer);
+  }, [query, refresh]);
 
   const setStatus = useCallback((id: string, status: string) => {
     setSandboxes((current) =>

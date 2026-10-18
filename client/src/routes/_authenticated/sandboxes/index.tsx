@@ -1,8 +1,10 @@
+import { useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, Search, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { SandboxCreateForm } from "@/features/sandboxes/sandbox-create-form";
+import { Input } from "@/components/ui/input";
+import { SandboxCreateSheet } from "@/features/sandboxes/sandbox-create-sheet";
 import { SandboxList } from "@/features/sandboxes/sandbox-list";
 import { useSandboxes } from "@/features/sandboxes/use-sandboxes";
 
@@ -11,7 +13,10 @@ export const Route = createFileRoute("/_authenticated/sandboxes/")({
 });
 
 function SandboxesPage() {
-  const { sandboxes, loading, working, error, refresh, start, stop, remove } = useSandboxes();
+  const [query, setQuery] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+  const { sandboxes, loading, working, error, refresh, start, stop, remove } = useSandboxes(query);
   const navigate = useNavigate();
 
   return (
@@ -23,24 +28,57 @@ function SandboxesPage() {
             Persistent VMs that keep their disk between commands.
           </p>
         </header>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="font-mono"
-          onClick={() => void refresh()}
-          disabled={loading}
-        >
-          <RefreshCw className={loading ? "animate-spin" : undefined} />
-          refresh
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="font-mono"
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus />
+            new
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="font-mono"
+            onClick={() => void refresh()}
+            disabled={loading}
+          >
+            <RefreshCw className={loading ? "animate-spin" : undefined} />
+            refresh
+          </Button>
+        </div>
       </div>
 
-      <SandboxCreateForm
-        onCreated={(name) => {
-          void navigate({ to: "/sandboxes/$name", params: { name } });
-        }}
-      />
+      <div className="relative">
+        <Search className="absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          ref={searchRef}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="search sandboxes…"
+          autoComplete="off"
+          spellCheck={false}
+          className="pr-8 pl-8 font-mono"
+        />
+        {query ? (
+          <button
+            type="button"
+            title="Clear search"
+            aria-label="Clear search"
+            onClick={() => {
+              setQuery("");
+              searchRef.current?.focus();
+            }}
+            className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground [&_svg]:size-3.5"
+          >
+            <X />
+          </button>
+        ) : null}
+      </div>
 
       {error ? (
         <p role="alert" className="text-sm text-destructive">
@@ -52,9 +90,19 @@ function SandboxesPage() {
         sandboxes={sandboxes}
         loading={loading}
         working={working}
+        searchQuery={query.trim()}
         onStart={(s) => void start(s)}
         onStop={(s) => void stop(s)}
         onDelete={(s) => void remove(s)}
+      />
+
+      <SandboxCreateSheet
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onCreated={(name) => {
+          setCreateOpen(false);
+          void navigate({ to: "/sandboxes/$name", params: { name } });
+        }}
       />
     </div>
   );

@@ -9,6 +9,7 @@ type SandboxListProps = {
   sandboxes: PersistentSandbox[];
   loading: boolean;
   working: string | null;
+  searchQuery?: string;
   onStart: (sandbox: PersistentSandbox) => void;
   onStop: (sandbox: PersistentSandbox) => void;
   onDelete: (sandbox: PersistentSandbox) => void;
@@ -23,6 +24,7 @@ export function SandboxList({
   sandboxes,
   loading,
   working,
+  searchQuery = "",
   onStart,
   onStop,
   onDelete,
@@ -34,7 +36,9 @@ export function SandboxList({
   if (sandboxes.length === 0) {
     return (
       <p className="py-6 text-center font-mono text-sm text-muted-foreground">
-        no sandboxes yet — create one above
+        {searchQuery
+          ? `no sandboxes match “${searchQuery}”`
+          : "no sandboxes yet — create one with + new"}
       </p>
     );
   }
@@ -99,6 +103,11 @@ export function SandboxList({
                     aria-label={running ? `Stop ${label}` : `Start ${label}`}
                     disabled={!sandbox.name || working !== null}
                     onClick={() => (running ? onStop(sandbox) : onStart(sandbox))}
+                    className={cn(
+                      running
+                        ? "hover:bg-warning/10 [&_svg]:text-warning"
+                        : "hover:bg-success/10 [&_svg]:text-success",
+                    )}
                   >
                     {busy ? <Loader2 className="animate-spin" /> : running ? <Square /> : <Play />}
                   </Button>
@@ -110,6 +119,7 @@ export function SandboxList({
                     aria-label={`Delete ${label}`}
                     disabled={working !== null}
                     onClick={() => onDelete(sandbox)}
+                    className="hover:bg-destructive/10 [&_svg]:text-destructive"
                   >
                     <Trash2 />
                   </Button>

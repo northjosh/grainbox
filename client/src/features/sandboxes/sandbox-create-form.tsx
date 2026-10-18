@@ -38,7 +38,7 @@ export function SandboxCreateForm({ onCreated }: { onCreated: (name: string) => 
   }
 
   return (
-    <form onSubmit={(e) => void onSubmit(e)} className="flex flex-wrap items-end gap-3 border-y py-4">
+    <form onSubmit={(e) => void onSubmit(e)} className="grid gap-4">
       <div className="grid gap-1.5">
         <Label
           htmlFor="sandbox-name"
@@ -54,6 +54,7 @@ export function SandboxCreateForm({ onCreated }: { onCreated: (name: string) => 
           pattern="[a-z0-9][a-z0-9-]{1,30}"
           placeholder="my-sandbox"
           autoComplete="off"
+          autoFocus
           required
           className="font-mono"
         />
@@ -67,7 +68,7 @@ export function SandboxCreateForm({ onCreated }: { onCreated: (name: string) => 
           image
         </Label>
         <Select value={image} onValueChange={(value) => setImage(value as Image)}>
-          <SelectTrigger id="sandbox-image" className="w-36 font-mono">
+          <SelectTrigger id="sandbox-image" className="w-full font-mono">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -80,12 +81,12 @@ export function SandboxCreateForm({ onCreated }: { onCreated: (name: string) => 
         </Select>
       </div>
 
-      <Button type="submit" className="font-mono" disabled={!name.trim() || pending}>
+      <Button type="submit" className="w-full font-mono" disabled={!name.trim() || pending}>
         {pending ? "creating…" : "create"}
       </Button>
 
       {error ? (
-        <p role="alert" className="w-full text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       ) : null}
