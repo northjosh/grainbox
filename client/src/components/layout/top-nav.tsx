@@ -9,6 +9,7 @@ const LINKS = [
   { to: "/", label: "run" },
   { to: "/runs", label: "runs" },
   { to: "/sandboxes", label: "sandboxes" },
+  { to: "/snapshots", label: "snapshots" },
 ] as const;
 
 export function TopNav({ session }: { session: Session }) {

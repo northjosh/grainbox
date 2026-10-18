@@ -1,14 +1,20 @@
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import "@xterm/xterm/css/xterm.css";
+
+import { useTerminalActivity } from "./terminal-activity-store";
 
 type TermProps = {
   sandboxName: string;
+  /** When true, focus the terminal — used by tab switches. */
+  active?: boolean;
 };
 
-export function XtermView({ sandboxName }: TermProps) {
+export function XtermView({ sandboxName, active }: TermProps) {
   const termRef = useRef<HTMLDivElement | null>(null);
+  const terminalRef = useRef<Terminal | null>(null);
+  const sessionId = useId();
 
   useEffect(() => {
     const container = termRef.current;
@@ -19,19 +25,46 @@ export function XtermView({ sandboxName }: TermProps) {
       convertEol: true,
       fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
       fontSize: 13,
+      lineHeight: 1.2,
+      scrollback: 5000,
       theme: {
         background: "#111411",
         foreground: "#e6ece5",
         cursor: "#d2ed61",
+        cursorAccent: "#111411",
+        selectionBackground: "rgba(210, 237, 97, 0.28)",
+        selectionInactiveBackground: "rgba(230, 236, 229, 0.12)",
+        black: "#20261f",
+        red: "#e5695f",
+        green: "#9ccc65",
+        yellow: "#e2c08d",
+        blue: "#6cb6ff",
+        magenta: "#c792ea",
+        cyan: "#62d4c8",
+        white: "#d8ded6",
+        brightBlack: "#6b7268",
+        brightRed: "#ff8f85",
+        brightGreen: "#c2f06a",
+        brightYellow: "#f2d17e",
+        brightBlue: "#94ccff",
+        brightMagenta: "#dfa9ff",
+        brightCyan: "#8ae8dc",
+        brightWhite: "#ffffff",
       },
     });
     const fit = new FitAddon();
     terminal.loadAddon(fit);
     terminal.open(container);
     fit.fit();
-    terminal.writeln(`Connecting to ${sandboxName}...`);
+    terminalRef.current = terminal;
+    terminal.writeln(`\x1b[90mConnecting to ${sandboxName}...\x1b[0m`);
 
-    const observer = new ResizeObserver(() => {
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry || entry.contentRect.width === 0 || entry.contentRect.height === 0) {
+        // Hidden tabs report zero size; refit happens when they become visible.
+        return;
+      }
       try {
         fit.fit();
       } catch {
@@ -52,7 +85,8 @@ export function XtermView({ sandboxName }: TermProps) {
     };
 
     socket.addEventListener("open", () => {
-      terminal.writeln(`Connected to ${sandboxName}\r\n`);
+      useTerminalActivity.getState().setConnected(sessionId, true);
+      terminal.writeln(`\x1b[38;2;194;240;106mConnected to ${sandboxName}\x1b[0m\r\n`);
       sendResize(terminal.rows, terminal.cols);
     });
 
@@ -67,7 +101,7 @@ export function XtermView({ sandboxName }: TermProps) {
           parsed.type === "exit" &&
           "code" in parsed
         ) {
-          terminal.writeln(`\r\n[shell exited: ${String(parsed.code)}]`);
+          terminal.writeln(`\r\n\x1b[33m[shell exited: ${String(parsed.code)}]\x1b[0m`);
           return;
         }
       } catch {
@@ -78,11 +112,12 @@ export function XtermView({ sandboxName }: TermProps) {
     });
 
     socket.addEventListener("close", () => {
-      terminal.writeln("\r\n[disconnected]");
+      useTerminalActivity.getState().setConnected(sessionId, false);
+      terminal.writeln("\r\n\x1b[31m[disconnected]\x1b[0m");
     });
 
     socket.addEventListener("error", () => {
-      terminal.writeln("\r\n[WebSocket error]");
+      terminal.writeln("\r\n\x1b[31m[WebSocket error]\x1b[0m");
     });
 
     const input = terminal.onData((data) => {
@@ -96,13 +131,19 @@ export function XtermView({ sandboxName }: TermProps) {
     });
 
     return () => {
+      useTerminalActivity.getState().setConnected(sessionId, false);
       observer.disconnect();
       input.dispose();
       resize.dispose();
       socket.close();
       terminal.dispose();
+      terminalRef.current = null;
     };
-  }, [sandboxName]);
+  }, [sandboxName, sessionId]);
 
-  return <div ref={termRef} className="h-[calc(100vh-11rem)] min-h-72 w-full p-2" />;
+  useEffect(() => {
+    if (active) terminalRef.current?.focus();
+  }, [active, sandboxName]);
+
+  return <div ref={termRef} className="h-[calc(100vh-13rem)] min-h-72 w-full p-2" />;
 }

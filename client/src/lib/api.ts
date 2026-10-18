@@ -195,3 +195,57 @@ export async function closePort(name: string, id: string): Promise<void> {
   );
   if (!res.ok) throw new Error(await readErrorBody(res));
 }
+
+export interface SandboxSnapshot {
+  id: string;
+  name: string;
+  /** Internal id of the sandbox the snapshot was taken from. */
+  sandbox: string;
+  createdAt: string;
+}
+
+export async function createSnapshot(
+  sandboxName: string,
+  name: string,
+): Promise<SandboxSnapshot> {
+  const result = await requestJson<{ snapshot: SandboxSnapshot | SandboxSnapshot[] }>(
+    `/api/sandboxes/${encodeURIComponent(sandboxName)}/snapshot`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name }),
+    },
+  );
+  const created = Array.isArray(result.snapshot) ? result.snapshot[0] : result.snapshot;
+  if (!created) throw new Error("snapshot failed");
+  return created;
+}
+
+/** Returns the user's snapshots; tolerates a raw array or `{ snapshots }`/`{ results }`. */
+export async function listSnapshots(): Promise<SandboxSnapshot[]> {
+  const result = await requestJson<
+    SandboxSnapshot[] | { snapshots?: SandboxSnapshot[]; results?: SandboxSnapshot[] }
+  >("/api/snapshots");
+  if (Array.isArray(result)) return result;
+  return result.snapshots ?? result.results ?? [];
+}
+
+export async function restoreSnapshot(id: string, name: string): Promise<PersistentSandbox> {
+  const result = await requestJson<{ sandbox: PersistentSandbox }>(
+    `/api/snapshots/${encodeURIComponent(id)}/restore`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name }),
+    },
+  );
+  return result.sandbox;
+}
+
+/** The backend resolves the `:id` param against the snapshot name, not the row id. */
+export async function deleteSnapshot(name: string): Promise<void> {
+  const res = await fetch(`/api/snapshots/${encodeURIComponent(name)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error(await readErrorBody(res));
+}

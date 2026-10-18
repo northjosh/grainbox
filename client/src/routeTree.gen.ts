@@ -13,6 +13,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedRunsRouteImport } from './routes/_authenticated/runs'
+import { Route as AuthenticatedSnapshotsRouteImport } from './routes/_authenticated/snapshots'
 import { Route as AuthenticatedSandboxesIndexRouteImport } from './routes/_authenticated/sandboxes/index'
 import { Route as AuthenticatedSandboxesNameRouteImport } from './routes/_authenticated/sandboxes/$name'
 
@@ -35,6 +36,11 @@ const AuthenticatedRunsRoute = AuthenticatedRunsRouteImport.update({
   path: '/runs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSnapshotsRoute = AuthenticatedSnapshotsRouteImport.update({
+  id: '/snapshots',
+  path: '/snapshots',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedSandboxesIndexRoute =
   AuthenticatedSandboxesIndexRouteImport.update({
     id: '/sandboxes/',
@@ -52,12 +58,14 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/login': typeof LoginRoute
   '/runs': typeof AuthenticatedRunsRoute
+  '/snapshots': typeof AuthenticatedSnapshotsRoute
   '/sandboxes/$name': typeof AuthenticatedSandboxesNameRoute
   '/sandboxes/': typeof AuthenticatedSandboxesIndexRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/runs': typeof AuthenticatedRunsRoute
+  '/snapshots': typeof AuthenticatedSnapshotsRoute
   '/': typeof AuthenticatedIndexRoute
   '/sandboxes/$name': typeof AuthenticatedSandboxesNameRoute
   '/sandboxes': typeof AuthenticatedSandboxesIndexRoute
@@ -67,20 +75,24 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/_authenticated/runs': typeof AuthenticatedRunsRoute
+  '/_authenticated/snapshots': typeof AuthenticatedSnapshotsRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/sandboxes/$name': typeof AuthenticatedSandboxesNameRoute
   '/_authenticated/sandboxes/': typeof AuthenticatedSandboxesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/runs' | '/sandboxes/$name' | '/sandboxes/'
+  fullPaths:
+    '/' | '/login' | '/runs' | '/snapshots' | '/sandboxes/$name' | '/sandboxes/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/runs' | '/' | '/sandboxes/$name' | '/sandboxes'
+  to:
+    '/login' | '/runs' | '/snapshots' | '/' | '/sandboxes/$name' | '/sandboxes'
   id:
     | '__root__'
     | '/_authenticated'
     | '/login'
     | '/_authenticated/runs'
+    | '/_authenticated/snapshots'
     | '/_authenticated/'
     | '/_authenticated/sandboxes/$name'
     | '/_authenticated/sandboxes/'
@@ -121,6 +133,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRunsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/snapshots': {
+      id: '/_authenticated/snapshots'
+      path: '/snapshots'
+      fullPath: '/snapshots'
+      preLoaderRoute: typeof AuthenticatedSnapshotsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/sandboxes/': {
       id: '/_authenticated/sandboxes/'
       path: '/sandboxes'
@@ -140,6 +159,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedRunsRoute: typeof AuthenticatedRunsRoute
+  AuthenticatedSnapshotsRoute: typeof AuthenticatedSnapshotsRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedSandboxesNameRoute: typeof AuthenticatedSandboxesNameRoute
   AuthenticatedSandboxesIndexRoute: typeof AuthenticatedSandboxesIndexRoute
@@ -147,6 +167,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRunsRoute: AuthenticatedRunsRoute,
+  AuthenticatedSnapshotsRoute: AuthenticatedSnapshotsRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedSandboxesNameRoute: AuthenticatedSandboxesNameRoute,
   AuthenticatedSandboxesIndexRoute: AuthenticatedSandboxesIndexRoute,
