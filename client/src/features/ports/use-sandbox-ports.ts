@@ -129,3 +129,5 @@ export function useSandboxPorts(sandboxName: string) {
 
   return { ports, detected, scanning, working, error, rescan, expose, close };
 }
+
+export type SandboxPortsState = ReturnType<typeof useSandboxPorts>;

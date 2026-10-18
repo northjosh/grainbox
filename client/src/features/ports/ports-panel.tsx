@@ -2,16 +2,27 @@ import { ExternalLink, Loader2, RefreshCw, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { portHref } from "./port-url";
-import { useSandboxPorts } from "./use-sandbox-ports";
+import type { SandboxPortsState } from "./use-sandbox-ports";
+
+type PortsPanelProps = SandboxPortsState & {
+  onClose: () => void;
+};
 
 /**
- * Exposed and detected ports for a sandbox. Detected ports are also announced
- * with a toast (see useSandboxPorts); ignoring the toast leaves them here.
+ * Exposed and detected ports for a sandbox. The poller lives at the page
+ * level (useSandboxPorts) so discovery toasts keep working while hidden.
  */
-export function PortsPanel({ sandboxName }: { sandboxName: string }) {
-  const { ports, detected, scanning, working, error, rescan, expose, close } =
-    useSandboxPorts(sandboxName);
-
+export function PortsPanel({
+  ports,
+  detected,
+  scanning,
+  working,
+  error,
+  rescan,
+  expose,
+  close,
+  onClose,
+}: PortsPanelProps) {
   const empty = ports.length === 0 && detected.length === 0;
 
   return (
@@ -23,15 +34,27 @@ export function PortsPanel({ sandboxName }: { sandboxName: string }) {
         ) : (
           <span className="font-mono text-xs text-muted-foreground/70">every 30s</span>
         )}
-        <button
-          type="button"
-          onClick={rescan}
-          title="Scan for ports now"
-          aria-label="Scan for ports now"
-          className="ml-auto rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground [&_svg]:size-3.5"
-        >
-          <RefreshCw className={cn(scanning && "animate-spin")} />
-        </button>
+
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            type="button"
+            onClick={rescan}
+            title="Scan for ports now"
+            aria-label="Scan for ports now"
+            className="rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground [&_svg]:size-3.5"
+          >
+            <RefreshCw className={cn(scanning && "animate-spin")} />
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            title="Hide ports"
+            aria-label="Hide ports"
+            className="rounded-sm p-1 text-muted-foreground transition-colors hover:text-foreground [&_svg]:size-3.5"
+          >
+            <X />
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-0.5 p-3 font-mono text-xs">

@@ -131,6 +131,20 @@ export async function executeSandboxCommand(name: string, command: string): Prom
   return result.stdout;
 }
 
+export async function startSandbox(name: string): Promise<void> {
+  const res = await fetch(`/api/sandboxes/${encodeURIComponent(name)}/start`, {
+    method: "PUT",
+  });
+  if (!res.ok) throw new Error(await readErrorBody(res));
+}
+
+export async function stopSandbox(name: string): Promise<void> {
+  const res = await fetch(`/api/sandboxes/${encodeURIComponent(name)}/stop`, {
+    method: "PUT",
+  });
+  if (!res.ok) throw new Error(await readErrorBody(res));
+}
+
 export async function deleteSandbox(name: string): Promise<void> {
   const res = await fetch(`/api/sandboxes/${encodeURIComponent(name)}`, {
     method: "DELETE",
