@@ -107,8 +107,6 @@ export const generateUrlName = () => {
   return `${randomAdj}-${randomNoun}-${randomUUID().slice(0, 8)}`;
 };
 
-// Example output: "serverless-cantina" or "blitzing-holocron"
-console.log(generateUrlName());
 export function generateSandboxName(): string {
   const base = NAMES[randomInt(NAMES.length)];
   return `${base}-${randomUUID().slice(0, 8)}`;

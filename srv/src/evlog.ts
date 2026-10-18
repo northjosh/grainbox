@@ -1,6 +1,6 @@
 import { initLogger, toLoggerConfig, toMiddlewareOptions } from 'evlog'
 import { evlog } from 'evlog/hono'
-import config from '../evlog.config'
+import config from '../evlog.config.js'
 
 initLogger(toLoggerConfig(config))
 

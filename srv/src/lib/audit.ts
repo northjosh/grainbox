@@ -12,23 +12,23 @@ import { defineAuditAction } from 'evlog'
 /** POST /signup — flagged for auth, pii */
 export const SIGNUP_CREATED = defineAuditAction('signup.created', {
   target: 'signup',
-  description: 'TODO: what this records, in one line',
+  description: 'Logs user signups',
 })
 
 /** POST /login — flagged for auth, pii */
 export const LOGIN_CREATED = defineAuditAction('login.created', {
   target: 'login',
-  description: 'TODO: what this records, in one line',
+  description: 'Logs user logins',
 })
 
 /** GET /session — flagged for auth, pii */
 export const SESSION_ACCESSED = defineAuditAction('session.accessed', {
   target: 'session',
-  description: 'TODO: what this records, in one line',
+  description: 'Logs session access',
 })
 
 /** POST /logout — flagged for auth, pii */
 export const LOGOUT_CREATED = defineAuditAction('logout.created', {
   target: 'logout',
-  description: 'TODO: what this records, in one line',
+  description: 'Records user Logouts',
 })
