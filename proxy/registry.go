@@ -13,6 +13,7 @@ import (
 
 var min, max = 35000, 40000
 var filename = "ports.json"
+var routesFilename = "routes.json"
 
 type Mapping struct {
 	HostPort  int `json:"host_port"`
@@ -113,6 +114,22 @@ func (r *Registry) Dump() {
 
 }
 
+func (r *Registry) DumpRoutes() {
+
+	data, err := json.MarshalIndent(r.routes, "", " ")
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.WriteFile(routesFilename, data, 0644)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("Saved routes to file %s\n", routesFilename)
+
+}
+
 func (r *Registry) Load() {
 	result := make(map[int]string)
 	r.routes = make(map[string]Mapping)
@@ -143,5 +160,27 @@ func (r *Registry) Load() {
 		fmt.Printf("free ports alloted: %d\n", len(r.free))
 		fmt.Println("Ports files loaded")
 	}
+
+}
+
+func (r *Registry) LoadRoutes() {
+	result := make(map[string]Mapping)
+
+	data, err := os.ReadFile(routesFilename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			fmt.Print("routes file not found, creating new map \n")
+			r.routes = result
+		} else {
+			panic(err)
+		}
+	}
+	
+	err = json.Unmarshal(data, &result)
+	if err != nil {
+		panic(err)
+	}
+	r.routes = result
+	fmt.Println("Routes files loaded")
 
 }

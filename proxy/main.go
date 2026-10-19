@@ -30,6 +30,7 @@ func main() {
 
 	reg := &Registry{}
 	reg.Load() // loads the ports.json file or return empty if n/a
+	reg.LoadRoutes()
 
 	transport := &http.Transport{
 		DialContext:           (&net.Dialer{Timeout: 5 * time.Second}).DialContext,
@@ -73,6 +74,7 @@ func main() {
 
 	// dump our registry so we can load it on next start
 	reg.Dump()
+	reg.DumpRoutes()	
 	shutdownctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	_ = proxySrv.Shutdown(shutdownctx)
