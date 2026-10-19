@@ -16,9 +16,7 @@ export function useSandboxLogs(sandboxName: string) {
     setLines([]);
     setStatus("connecting");
 
-    const source = new EventSource(
-      `/api/sandboxes/${encodeURIComponent(sandboxName)}/log-stream`,
-    );
+    const source = new EventSource(`/api/sandboxes/${encodeURIComponent(sandboxName)}/log-stream`);
 
     source.onopen = () => setStatus("open");
 

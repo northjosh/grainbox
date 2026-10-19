@@ -59,11 +59,7 @@ export function OutputPanel() {
           >
             {copied ? <Check /> : <Copy />}
           </IconButton>
-          <IconButton
-            label="Clear output"
-            disabled={busy || (!result && !error)}
-            onClick={clear}
-          >
+          <IconButton label="Clear output" disabled={busy || (!result && !error)} onClick={clear}>
             <RotateCcw />
           </IconButton>
         </div>

@@ -204,10 +204,7 @@ export interface SandboxSnapshot {
   createdAt: string;
 }
 
-export async function createSnapshot(
-  sandboxName: string,
-  name: string,
-): Promise<SandboxSnapshot> {
+export async function createSnapshot(sandboxName: string, name: string): Promise<SandboxSnapshot> {
   const result = await requestJson<{ snapshot: SandboxSnapshot | SandboxSnapshot[] }>(
     `/api/sandboxes/${encodeURIComponent(sandboxName)}/snapshot`,
     {

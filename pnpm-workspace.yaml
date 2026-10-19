@@ -3,10 +3,8 @@ allowBuilds:
   esbuild: true
   lightningcss: true
 packages:
-  - 'srv'
-  - 'client'
+  - "srv"
+  - "client"
 catalog:
   typescript: ^7.0.2
   "@types/node": ^26.6.4
-
- 

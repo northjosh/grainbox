@@ -98,9 +98,7 @@ export function SnapshotList({
           <tr>
             <td colSpan={3} className="py-2.5">
               <form onSubmit={submitRestore} className="flex items-center gap-2 font-mono text-xs">
-                <span className="text-muted-foreground">
-                  restore {restoring.name} into
-                </span>
+                <span className="text-muted-foreground">restore {restoring.name} into</span>
                 <input
                   autoFocus
                   value={restoreName}

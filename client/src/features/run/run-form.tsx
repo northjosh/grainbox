@@ -98,8 +98,8 @@ export function RunForm() {
           cancel
         </Button>
         <p className="ml-auto hidden font-mono text-xs text-muted-foreground sm:block">
-          max {MAX_CONCURRENT} concurrent · {SERVER_TIMEOUT_MS / 1000}s timeout · ⌘/ctrl+↵ run ·
-          esc cancel
+          max {MAX_CONCURRENT} concurrent · {SERVER_TIMEOUT_MS / 1000}s timeout · ⌘/ctrl+↵ run · esc
+          cancel
         </p>
       </div>
     </form>

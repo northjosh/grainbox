@@ -84,10 +84,7 @@ function SandboxTerminalPage() {
       </header>
 
       <div
-        className={cn(
-          "grid items-start gap-4",
-          showAside && "lg:grid-cols-[minmax(0,1fr)_18rem]",
-        )}
+        className={cn("grid items-start gap-4", showAside && "lg:grid-cols-[minmax(0,1fr)_18rem]")}
       >
         <div className="min-w-0 overflow-hidden rounded-md border border-white/10 bg-terminal">
           <TerminalTabs key={name} sandboxName={name} />
@@ -99,9 +96,7 @@ function SandboxTerminalPage() {
             {showSnapshots ? (
               <SnapshotsPanel sandboxName={name} onClose={() => setShowSnapshots(false)} />
             ) : null}
-            {showLogs ? (
-              <LogsPanel sandboxName={name} onClose={() => setShowLogs(false)} />
-            ) : null}
+            {showLogs ? <LogsPanel sandboxName={name} onClose={() => setShowLogs(false)} /> : null}
           </div>
         ) : null}
       </div>

@@ -40,9 +40,7 @@ export function useSandboxes(query = "") {
   }, [query, refresh]);
 
   const setStatus = useCallback((id: string, status: string) => {
-    setSandboxes((current) =>
-      current.map((item) => (item.id === id ? { ...item, status } : item)),
-    );
+    setSandboxes((current) => current.map((item) => (item.id === id ? { ...item, status } : item)));
   }, []);
 
   const start = useCallback(

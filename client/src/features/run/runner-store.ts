@@ -46,7 +46,8 @@ export const useRunnerStore = create<RunnerState>()((set, get) => ({
 
   setCommand: (command) => set({ command }),
 
-  load: (image, command, result) => set({ image, command, result, ranCommand: command, error: null }),
+  load: (image, command, result) =>
+    set({ image, command, result, ranCommand: command, error: null }),
 
   clear: () => set({ result: null, error: null, ranCommand: null }),
 
@@ -60,7 +61,13 @@ export const useRunnerStore = create<RunnerState>()((set, get) => ({
     const ctrl = new AbortController();
     controller = ctrl;
 
-    set({ error: null, result: null, ranCommand: trimmed, status: "running", inflight: inflight + 1 });
+    set({
+      error: null,
+      result: null,
+      ranCommand: trimmed,
+      status: "running",
+      inflight: inflight + 1,
+    });
 
     try {
       const result = await runCommand(image, trimmed, ctrl.signal);

@@ -118,15 +118,13 @@ export function LoginPage() {
               {isSignup ? "Create your account" : "Welcome back"}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {isSignup ? "Pick a name and start running commands." : "Sign in to spin up sandboxes."}
+              {isSignup
+                ? "Pick a name and start running commands."
+                : "Sign in to spin up sandboxes."}
             </p>
           </div>
 
-          <Tabs
-            value={mode}
-            onValueChange={(value) => switchMode(value as Mode)}
-            className="gap-4"
-          >
+          <Tabs value={mode} onValueChange={(value) => switchMode(value as Mode)} className="gap-4">
             <TabsList className="w-full">
               {MODES.map((m) => (
                 <TabsTrigger key={m.value} value={m.value}>

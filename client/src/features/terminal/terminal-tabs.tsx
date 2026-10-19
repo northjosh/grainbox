@@ -41,9 +41,7 @@ export function TerminalTabs({ sandboxName }: { sandboxName: string }) {
     if (editing === null) return;
     const name = draft.trim();
     if (name) {
-      setTabs((current) =>
-        current.map((tab) => (tab.id === editing ? { ...tab, name } : tab)),
-      );
+      setTabs((current) => current.map((tab) => (tab.id === editing ? { ...tab, name } : tab)));
     }
     setEditing(null);
   }

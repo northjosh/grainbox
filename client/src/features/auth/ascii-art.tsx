@@ -105,11 +105,7 @@ function buildEdgePoints(steps: number): Vec3[] {
     const b = corners[j]!;
     for (let s = 0; s < steps; s++) {
       const t = s / steps;
-      points.push([
-        a[0] + (b[0] - a[0]) * t,
-        a[1] + (b[1] - a[1]) * t,
-        a[2] + (b[2] - a[2]) * t,
-      ]);
+      points.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]);
     }
   }
   return points;
@@ -213,9 +209,7 @@ export function SandBoxArt({ className }: { className?: string }) {
       }
       for (const face of faces) {
         if (gi >= edgeGrains + faceGrains) break;
-        grains.push(
-          makeGrain(2, face.p[0], face.p[1], face.p[2], face.n[0], face.n[1], face.n[2]),
-        );
+        grains.push(makeGrain(2, face.p[0], face.p[1], face.p[2], face.n[0], face.n[1], face.n[2]));
         gi += 1;
       }
       while (grains.length < count) grains.push(makeGrain(0, 0, 0, 0, 0, 0, 0));

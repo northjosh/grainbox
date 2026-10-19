@@ -18,7 +18,9 @@ export function SnapshotsPanel({
     useSandboxSnapshots(sandboxName);
   const navigate = useNavigate();
 
-  const [name, setName] = useState(() => `${sanitize(sandboxName)}-${Date.now().toString(36).slice(-4)}`);
+  const [name, setName] = useState(
+    () => `${sanitize(sandboxName)}-${Date.now().toString(36).slice(-4)}`,
+  );
   const [restoring, setRestoring] = useState<SandboxSnapshot | null>(null);
   const [restoreName, setRestoreName] = useState("");
 
@@ -66,7 +68,10 @@ export function SnapshotsPanel({
       </div>
 
       <div className="grid gap-1 p-3 font-mono text-xs">
-        <form onSubmit={(event) => void submitCreate(event)} className="flex items-center gap-2 pb-2">
+        <form
+          onSubmit={(event) => void submitCreate(event)}
+          className="flex items-center gap-2 pb-2"
+        >
           <input
             value={name}
             onChange={(event) => setName(event.target.value)}

@@ -12,13 +12,7 @@ const STATUS_META: Record<LogStreamStatus, { label: string; className: string }>
 };
 
 /** Live sandbox logs streamed over SSE, rendered as a terminal block. */
-export function LogsPanel({
-  sandboxName,
-  onClose,
-}: {
-  sandboxName: string;
-  onClose: () => void;
-}) {
+export function LogsPanel({ sandboxName, onClose }: { sandboxName: string; onClose: () => void }) {
   const { lines, status, clear } = useSandboxLogs(sandboxName);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const pinnedRef = useRef(true);

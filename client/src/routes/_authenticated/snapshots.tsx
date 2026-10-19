@@ -10,8 +10,7 @@ export const Route = createFileRoute("/_authenticated/snapshots")({
 });
 
 function SnapshotsPage() {
-  const { snapshots, loading, working, error, refresh, restore, remove } =
-    useSandboxSnapshots();
+  const { snapshots, loading, working, error, refresh, restore, remove } = useSandboxSnapshots();
   const navigate = useNavigate();
 
   return (
