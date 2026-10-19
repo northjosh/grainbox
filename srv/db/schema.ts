@@ -144,8 +144,8 @@ export const portRelations = relations(ports, ({ one }) => ({
   user: one(sandboxes, {
     fields: [ports.sandbox],
     references: [sandboxes.id],
-  }),}));
-
+  }),
+}));
 
 export const snapshotRelations = relations(snapshots, ({ one }) => ({
   user: one(users, {

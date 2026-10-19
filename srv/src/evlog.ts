@@ -1,8 +1,8 @@
-import { initLogger, toLoggerConfig, toMiddlewareOptions } from 'evlog'
-import { evlog } from 'evlog/hono'
-import config from '../evlog.config.js'
+import { initLogger, toLoggerConfig, toMiddlewareOptions } from "evlog";
+import { evlog } from "evlog/hono";
+import config from "../evlog.config.js";
 
-initLogger(toLoggerConfig(config))
+initLogger(toLoggerConfig(config));
 
 /** Register once, before your routes: `app.use(evlogMiddleware)`. */
-export const evlogMiddleware = evlog(toMiddlewareOptions(config))
+export const evlogMiddleware = evlog(toMiddlewareOptions(config));

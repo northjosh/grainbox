@@ -2,8 +2,10 @@ import { createMiddleware } from "hono/factory";
 import { NAME_RE, ALLOWED_IMAGES, SESSION_COOKIE } from "./constants.js";
 import { deleteCookie, getCookie } from "hono/cookie";
 import { db } from "../db/db.js";
+import type { Context, Next } from "hono";
+import type { Env } from "./env.js";
 
-export const validateSession = createMiddleware(async (c, next) => {
+export const validateSession = createMiddleware(async (c: Context<Env>, next: Next) => {
   const sessionToken = getCookie(c, SESSION_COOKIE);
 
   if (!sessionToken) {
@@ -28,16 +30,17 @@ export const validateSession = createMiddleware(async (c, next) => {
 
   c.set("session", session);
   c.set("user", session.user);
+  c.get("log").set({ user: session.user.id });
   await next();
 });
 
-export const validateName = createMiddleware(async (c, next) => {
+export const validateName = createMiddleware(async (c: Context<Env>, next: Next) => {
   const { name } = await c.req.json();
   if (!NAME_RE.test(name)) return c.json({ error: "invalid name" }, 400);
   await next();
 });
 
-export const validateImage = createMiddleware(async (c, next) => {
+export const validateImage = createMiddleware(async (c: Context<Env>, next: Next) => {
   const { image } = await c.req.json();
   if (!image) {
     return;
@@ -50,5 +53,36 @@ export const validateCommand = createMiddleware(async (c, next) => {
   const { command } = await c.req.json();
   if (typeof command !== "string" || command.length > 2000)
     return c.json({ error: "invalid command" }, 400);
+  await next();
+});
+
+export const validateSandbox = createMiddleware(async (c: Context<Env>, next: Next) => {
+  const name = c.req.param("name");
+  const user = c.get("user");
+
+  if (!user) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+
+  if (!name) {
+    return c.json({ error: "missing sandbox name" }, 401);
+  }
+
+  const sandbox = await db.query.sandboxes.findFirst({
+    where: (sandboxes, { and, eq }) => and(eq(sandboxes.name, name), eq(sandboxes.user, user.id)),
+  });
+
+  if (!sandbox) {
+    return c.json({ error: "sandbox not found" }, 404);
+  }
+
+  c.set("sandbox", sandbox);
+  c.get("log").set({
+    sandbox: {
+      id: sandbox.id,
+      name: sandbox.name,
+    },
+  });
+
   await next();
 });

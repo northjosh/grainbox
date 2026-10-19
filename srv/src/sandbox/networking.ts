@@ -29,33 +29,37 @@ export async function setPort(id: string) {
 
     if (!res.ok) {
       // throw some error
-       console.log(res)
+      console.log(res);
     }
-    const response = await res.json()
-    console.log(response)
-    return response
+    const response = await res.json();
+    console.log(response);
+    return response;
   } catch (e) {
     console.log(e);
   }
 }
 
-export async function registerRoute(id: string, hostPort: string | number, guestPort: string | number ) {
+export async function registerRoute(
+  id: string,
+  hostPort: string | number,
+  guestPort: string | number,
+) {
   try {
     const res = await fetch(`http://localhost:9090/register/${encodeURIComponent(hostPort)}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${ADMIN_SECRET}`,
       },
-      body: JSON.stringify({guestPort, id})
+      body: JSON.stringify({ guestPort, id }),
     });
 
     if (!res.ok) {
       // throw some error
-       console.log(res)
+      console.log(res);
     }
-    const response = await res.json()
-    console.log(response)
-    return response
+    const response = await res.json();
+    console.log(response);
+    return response;
   } catch (e) {
     console.log(e);
   }
@@ -68,15 +72,15 @@ export async function deregisterRoute(id: string) {
       headers: {
         Authorization: `Bearer ${ADMIN_SECRET}`,
       },
-    }); 
+    });
 
     if (!res.ok) {
       // throw some error
-       console.log(res)
+      console.log(res);
     }
-    const response = await res.json()
-    console.log(response)
-    return response
+    const response = await res.json();
+    console.log(response);
+    return response;
   } catch (e) {
     console.log(e);
   }
@@ -92,10 +96,10 @@ export async function releasePort(port: number) {
     });
 
     if (!res.ok) {
-      console.log(res)
+      console.log(res);
     }
     return;
-  } catch(e) {
+  } catch (e) {
     console.log(e);
   }
 }

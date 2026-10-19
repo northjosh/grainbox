@@ -1,30 +1,28 @@
-import { defineEvlog } from 'evlog'
-import type { DrainContext } from 'evlog'
-import { createFsDrain } from 'evlog/fs'
-import { createSentryDrain } from 'evlog/sentry'
-import { createOTLPDrain } from 'evlog/otlp'
-import { createLokiDrain } from 'evlog/loki'
-import { createDrainPipeline } from 'evlog/pipeline'
-import {
-  createTraceContextEnricher,
-} from 'evlog/enrichers'
+import { defineEvlog } from "evlog";
+import type { DrainContext } from "evlog";
+import { createFsDrain } from "evlog/fs";
+import { createSentryDrain } from "evlog/sentry";
+import { createOTLPDrain } from "evlog/otlp";
+import { createLokiDrain } from "evlog/loki";
+import { createDrainPipeline } from "evlog/pipeline";
+import { createTraceContextEnricher } from "evlog/enrichers";
 
 const pipeline = createDrainPipeline<DrainContext>({
   batch: { size: 50, intervalMs: 5000 },
   retry: { maxAttempts: 3 },
-})
+});
 
-
-const drains = process.env.NODE_ENV === 'production'
-  ? [pipeline(createSentryDrain()), pipeline(createOTLPDrain()), pipeline(createLokiDrain())]
-  : [createFsDrain(), pipeline(createSentryDrain())]
+const drains =
+  process.env.NODE_ENV === "production"
+    ? [pipeline(createSentryDrain()), pipeline(createOTLPDrain()), pipeline(createLokiDrain())]
+    : [createFsDrain(), pipeline(createSentryDrain())];
 
 const enrichers = [
   // createUserAgentEnricher(),
   // createGeoEnricher(),
   // createRequestSizeEnricher(),
   createTraceContextEnricher(),
-]
+];
 
 /**
  * Settings for grainbox, read by the app and by the evlog CLI.
@@ -32,9 +30,9 @@ const enrichers = [
  * https://evlog.dev/cli/config
  */
 export default defineEvlog({
-  service: 'grainbox',
-  drain: async ctx => void await Promise.all(drains.map(drain => drain(ctx))),
+  service: "grainbox",
+  drain: async (ctx) => void (await Promise.all(drains.map((drain) => drain(ctx)))),
   enrich: async (ctx) => {
-    for (const enrich of enrichers) await enrich(ctx)
+    for (const enrich of enrichers) await enrich(ctx);
   },
-})
+});

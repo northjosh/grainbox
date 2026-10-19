@@ -1,6 +1,6 @@
 import { db } from "../../db/db.js";
 import * as crypto from "node:crypto";
-import { sessions, users, type Session } from "../../db/schema.js";
+import { sessions, users } from "../../db/schema.js";
 import { eq } from "drizzle-orm";
 
 export async function signup({

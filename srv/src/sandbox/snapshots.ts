@@ -7,25 +7,25 @@ import { DEFAULT_CPUS, DEFAULT_GUEST_PORT, DEFAULT_MEMORY, PREFIX } from "../con
 import { generateSandboxName } from "../utils/generate-name.js";
 import { releasePort, setPort } from "./networking.js";
 
-export async function createSnapshot(sandbox: SandboxRecord, user: string, name: string | undefined) {
+export async function createSnapshot(
+  sandbox: SandboxRecord,
+  user: string,
+  name: string | undefined,
+) {
   if (name === undefined) {
     name = `${sandbox}-${randomUUID().slice(0, 6)}`;
   }
 
-  const msbName = `${sandbox.msbName}:${name}`
-  await Snapshot.builder(name)
-    .fromSandbox(sandbox.msbName)
-    .label("owner", user)
-    .full()
-    .create();
+  const msbName = `${sandbox.msbName}:${name}`;
+  await Snapshot.builder(name).fromSandbox(sandbox.msbName).label("owner", user).full().create();
 
   return await db
     .insert(snapshots)
-    .values({ name, sandbox: sandbox.id, msbName,  user })
+    .values({ name, sandbox: sandbox.id, msbName, user })
     .returning();
 }
 
-export async function deleteSnapshot(name: string, user: User) {
+export async function deleteSnapshot(name: string, user: Pick<User, "id">) {
   const [s] = await db
     .select({
       name: snapshots.name,
@@ -42,7 +42,7 @@ export async function deleteSnapshot(name: string, user: User) {
   return (await db.delete(snapshots).where(eq(snapshots.id, s.id))).rowsAffected;
 }
 
-export async function restoreSnapshot(id: string, name: string, user: User) {
+export async function restoreSnapshot(id: string, name: string, user: Pick<User, "id">) {
   const [s] = await db
     .select({
       name: snapshots.name,
@@ -65,13 +65,7 @@ export async function restoreSnapshot(id: string, name: string, user: User) {
 
   const port = res["port"];
   try {
-    await Sandbox.restore(snap)
-      .name(name)
-      .memory(memory)
-      .cpus(cpu)
-      .port(port, 80)
-      .restore();
-
+    await Sandbox.restore(snap).name(name).memory(memory).cpus(cpu).port(port, 80).restore();
 
     [record] = await db
       .insert(sandboxes)
@@ -87,8 +81,8 @@ export async function restoreSnapshot(id: string, name: string, user: User) {
         cpu,
       })
       .returning();
-  } catch(e) {
-    console.error(e)
+  } catch (e) {
+    console.error(e);
     releasePort(port);
   }
 
