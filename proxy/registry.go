@@ -171,6 +171,7 @@ func (r *Registry) LoadRoutes() {
 		if os.IsNotExist(err) {
 			fmt.Print("routes file not found, creating new map \n")
 			r.routes = result
+			return
 		} else {
 			panic(err)
 		}
