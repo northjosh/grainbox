@@ -8,7 +8,10 @@ import tailwindcss from "@tailwindcss/vite";
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  build : {
+    outDir: "../dist/public/"
 
+  },
   server: {
     port: 3000,
     allowedHosts: [".trycloudflare.com"],

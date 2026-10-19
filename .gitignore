@@ -6,3 +6,6 @@ srv/db.sqlite
 .nx/cache
 .nx/workspace-data
 .nx/migrate-runs
+
+.env
+.env.local

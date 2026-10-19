@@ -2,10 +2,13 @@ import { defineEvlog } from "evlog";
 import type { DrainContext } from "evlog";
 import { createFsDrain } from "evlog/fs";
 import { createSentryDrain } from "evlog/sentry";
-import { createOTLPDrain } from "evlog/otlp";
-import { createLokiDrain } from "evlog/loki";
 import { createDrainPipeline } from "evlog/pipeline";
-import { createTraceContextEnricher } from "evlog/enrichers";
+import {
+  createGeoEnricher,
+  createRequestSizeEnricher,
+  createTraceContextEnricher,
+  createUserAgentEnricher,
+} from "evlog/enrichers";
 
 const pipeline = createDrainPipeline<DrainContext>({
   batch: { size: 50, intervalMs: 5000 },
@@ -14,15 +17,18 @@ const pipeline = createDrainPipeline<DrainContext>({
 
 const drains =
   process.env.NODE_ENV === "production"
-    ? [pipeline(createSentryDrain()), pipeline(createOTLPDrain()), pipeline(createLokiDrain())]
-    : [createFsDrain(), pipeline(createSentryDrain())];
+    ? [pipeline(createSentryDrain())]
+    : [createFsDrain()];
 
-const enrichers = [
-  // createUserAgentEnricher(),
-  // createGeoEnricher(),
-  // createRequestSizeEnricher(),
-  createTraceContextEnricher(),
-];
+const enrichers =
+  process.env.NODE_ENV === "production"
+    ? [
+        createUserAgentEnricher(),
+        createGeoEnricher(),
+        createRequestSizeEnricher(),
+        createTraceContextEnricher(),
+      ]
+    : [createTraceContextEnricher()];
 
 /**
  * Settings for grainbox, read by the app and by the evlog CLI.
