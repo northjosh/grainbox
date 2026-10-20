@@ -19,6 +19,10 @@ export function createApp() {
   app.use("/icon.png", serveStatic({ root: "./public" }));
   app.use("/icon-180.png", serveStatic({ root: "./public" }));
   app.use("/icon-32.png", serveStatic({ root: "./public" }));
+  app.use("/favicon.ico", serveStatic({ root: "./public" }));
+  app.use("/favicon.png", serveStatic({ root: "./public" }));
+  app.use("/favicon-180.png", serveStatic({ root: "./public" }));
+  app.use("/favicon-32.png", serveStatic({ root: "./public" }));
   app.get("/", serveStatic({ root: "./public/" }));
 
   const api = app.basePath("/api");
