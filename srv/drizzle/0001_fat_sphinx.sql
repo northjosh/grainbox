@@ -15,7 +15,7 @@ CREATE TABLE `__new_sandboxes` (
 	FOREIGN KEY (`user`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-INSERT INTO `__new_sandboxes`("id", "name", "msbName", "hostPort", "guestPort", "user", "memory", "image", "status", "cpu", "createdAt", "emephemeral") SELECT "id", "name", "msbName", "hostPort", "guestPort", "user", "memory", "image", "status", "cpu", "createdAt", "emephemeral" FROM `sandboxes`;--> statement-breakpoint
+INSERT INTO `__new_sandboxes`("id", "name", "msbName", "hostPort", "guestPort", "user", "memory", "image", "status", "cpu", "createdAt", "emephemeral") SELECT "id", "name", "msbName", CAST("port" AS INTEGER), 80, "user", "memory", "image", "status", "cpu", "createdAt", "emephemeral" FROM `sandboxes`;--> statement-breakpoint
 DROP TABLE `sandboxes`;--> statement-breakpoint
 ALTER TABLE `__new_sandboxes` RENAME TO `sandboxes`;--> statement-breakpoint
 PRAGMA foreign_keys=ON;--> statement-breakpoint

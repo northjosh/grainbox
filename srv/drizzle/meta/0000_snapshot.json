@@ -46,17 +46,12 @@
       "indexes": {
         "ports_url_unique": {
           "name": "ports_url_unique",
-          "columns": [
-            "url"
-          ],
+          "columns": ["url"],
           "isUnique": true
         },
         "idx_port_sandbox": {
           "name": "idx_port_sandbox",
-          "columns": [
-            "number",
-            "sandbox"
-          ],
+          "columns": ["number", "sandbox"],
           "isUnique": true
         }
       },
@@ -65,12 +60,8 @@
           "name": "ports_sandbox_sandboxes_id_fk",
           "tableFrom": "ports",
           "tableTo": "sandboxes",
-          "columnsFrom": [
-            "sandbox"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["sandbox"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -174,23 +165,17 @@
       "indexes": {
         "sandboxes_msbName_unique": {
           "name": "sandboxes_msbName_unique",
-          "columns": [
-            "msbName"
-          ],
+          "columns": ["msbName"],
           "isUnique": true
         },
         "sandboxes_port_unique": {
           "name": "sandboxes_port_unique",
-          "columns": [
-            "port"
-          ],
+          "columns": ["port"],
           "isUnique": true
         },
         "sandbox_name_idx": {
           "name": "sandbox_name_idx",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": true
         }
       },
@@ -199,12 +184,8 @@
           "name": "sandboxes_user_users_id_fk",
           "tableFrom": "sandboxes",
           "tableTo": "users",
-          "columnsFrom": [
-            "user"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -255,9 +236,7 @@
       "indexes": {
         "sessions_sessionToken_unique": {
           "name": "sessions_sessionToken_unique",
-          "columns": [
-            "sessionToken"
-          ],
+          "columns": ["sessionToken"],
           "isUnique": true
         }
       },
@@ -266,12 +245,8 @@
           "name": "sessions_userId_users_id_fk",
           "tableFrom": "sessions",
           "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -322,9 +297,7 @@
       "indexes": {
         "snapshot_name_idx": {
           "name": "snapshot_name_idx",
-          "columns": [
-            "name"
-          ],
+          "columns": ["name"],
           "isUnique": true
         }
       },
@@ -333,12 +306,8 @@
           "name": "snapshots_user_users_id_fk",
           "tableFrom": "snapshots",
           "tableTo": "users",
-          "columnsFrom": [
-            "user"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -411,9 +380,7 @@
       "indexes": {
         "email_idx": {
           "name": "email_idx",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "isUnique": true
         }
       },

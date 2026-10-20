@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 
 const db = drizzle({
   connection: {
-    url: "file:./db.sqlite",
+    url: process.env.GB_DATABASE_URL ?? "file:./db.sqlite",
   },
 });
 

@@ -15,6 +15,13 @@
       "when": 1791976179692,
       "tag": "0001_fat_sphinx",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1792413026575,
+      "tag": "0002_loving_whistler",
+      "breakpoints": true
     }
   ]
 }
