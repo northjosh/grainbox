@@ -37,6 +37,12 @@ const enrichers =
  */
 export default defineEvlog({
   service: "grainbox",
+  exclude: [
+    '/api/health',
+    '/assets/**',
+    '/_status',
+    '/favicon.ico',
+  ],
   drain: async (ctx) => void (await Promise.all(drains.map((drain) => drain(ctx)))),
   enrich: async (ctx) => {
     for (const enrich of enrichers) await enrich(ctx);
