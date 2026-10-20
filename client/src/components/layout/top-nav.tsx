@@ -1,15 +1,17 @@
 import { Link } from "@tanstack/react-router";
 
 import { AccountMenu } from "@/components/layout/account-menu";
+import { CommandMenu } from "@/components/layout/command-menu";
+import { ShortcutsHelp } from "@/components/layout/shortcuts-help";
 import { StatusLine } from "@/components/layout/status-line";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 import type { Session } from "@/features/auth/auth-client";
 
 const LINKS = [
-  { to: "/", label: "run" },
-  { to: "/runs", label: "runs" },
-  { to: "/sandboxes", label: "sandboxes" },
-  { to: "/snapshots", label: "snapshots" },
+  { to: "/", label: "run", shortcut: "g r" },
+  { to: "/runs", label: "runs", shortcut: "g h" },
+  { to: "/sandboxes", label: "sandboxes", shortcut: "g b" },
+  { to: "/snapshots", label: "snapshots", shortcut: "g s" },
 ] as const;
 
 export function TopNav({ session }: { session: Session }) {
@@ -35,6 +37,7 @@ export function TopNav({ session }: { session: Session }) {
             <Link
               key={link.to}
               to={link.to}
+              title={`${link.label} (${link.shortcut})`}
               activeOptions={{ exact: link.to === "/" }}
               className="font-mono text-sm text-muted-foreground transition-colors hover:text-foreground"
               activeProps={{ className: "text-foreground" }}
@@ -46,7 +49,9 @@ export function TopNav({ session }: { session: Session }) {
 
         <div className="ml-auto flex items-center gap-3">
           <StatusLine />
+          <CommandMenu />
           <ThemeToggle />
+          <ShortcutsHelp />
           <AccountMenu identity={session.identity} />
         </div>
       </div>

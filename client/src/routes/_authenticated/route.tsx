@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 
 import { TopNav } from "@/components/layout/top-nav";
+import { useNavHotkeys } from "@/components/layout/use-nav-hotkeys";
 import { useServerStore } from "@/lib/store/server-store";
 
 /**
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthenticatedLayout() {
   const { session } = Route.useRouteContext();
   const checkHealth = useServerStore((s) => s.check);
+  useNavHotkeys();
 
   useEffect(() => {
     void checkHealth();

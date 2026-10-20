@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Plus, RefreshCw, Search, X } from "lucide-react";
 
@@ -7,8 +7,11 @@ import { Input } from "@/components/ui/input";
 import { SandboxCreateSheet } from "@/features/sandboxes/sandbox-create-sheet";
 import { SandboxList } from "@/features/sandboxes/sandbox-list";
 import { useSandboxes } from "@/features/sandboxes/use-sandboxes";
+import { isTypingTarget } from "@/lib/hotkeys";
 
 export const Route = createFileRoute("/_authenticated/sandboxes/")({
+  validateSearch: (search: Record<string, unknown>): { new?: boolean } =>
+    search.new === "1" || search.new === true ? { new: true } : {},
   component: SandboxesPage,
 });
 
@@ -18,6 +21,43 @@ function SandboxesPage() {
   const searchRef = useRef<HTMLInputElement | null>(null);
   const { sandboxes, loading, working, error, refresh, start, stop, remove } = useSandboxes(query);
   const navigate = useNavigate();
+  const { new: newSandbox } = Route.useSearch();
+
+  useEffect(() => {
+    if (!newSandbox) return;
+    setCreateOpen(true);
+    void navigate({ to: "/sandboxes", search: {}, replace: true });
+  }, [newSandbox, navigate]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+
+      if (e.key === "Escape" && !createOpen) {
+        if (query) {
+          setQuery("");
+          searchRef.current?.blur();
+        }
+        return;
+      }
+
+      if (isTypingTarget(e.target)) return;
+
+      if (e.key === "/") {
+        e.preventDefault();
+        searchRef.current?.focus();
+        return;
+      }
+
+      if (e.key.toLowerCase() === "n" && !createOpen) {
+        e.preventDefault();
+        setCreateOpen(true);
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [createOpen, query]);
 
   return (
     <div className="mx-auto grid w-full max-w-4xl gap-6">
@@ -34,6 +74,7 @@ function SandboxesPage() {
             variant="ghost"
             size="sm"
             className="font-mono"
+            title="New sandbox (n)"
             onClick={() => setCreateOpen(true)}
           >
             <Plus />
@@ -60,6 +101,7 @@ function SandboxesPage() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="search sandboxes…"
+          title="Focus search (/)"
           autoComplete="off"
           spellCheck={false}
           className="pr-8 pl-8 font-mono"
