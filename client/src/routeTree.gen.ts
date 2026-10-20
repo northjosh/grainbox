@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SplatRouteImport } from './routes/$'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
@@ -17,6 +18,11 @@ import { Route as AuthenticatedSnapshotsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedSandboxesIndexRouteImport } from './routes/_authenticated/sandboxes/index'
 import { Route as AuthenticatedSandboxesNameRouteImport } from './routes/_authenticated/sandboxes/$name'
 
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
@@ -56,6 +62,7 @@ const AuthenticatedSandboxesNameRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
+  '/$': typeof SplatRoute
   '/login': typeof LoginRoute
   '/runs': typeof AuthenticatedRunsRoute
   '/snapshots': typeof AuthenticatedSnapshotsRoute
@@ -63,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/sandboxes/': typeof AuthenticatedSandboxesIndexRoute
 }
 export interface FileRoutesByTo {
+  '/$': typeof SplatRoute
   '/login': typeof LoginRoute
   '/runs': typeof AuthenticatedRunsRoute
   '/snapshots': typeof AuthenticatedSnapshotsRoute
@@ -73,6 +81,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/$': typeof SplatRoute
   '/login': typeof LoginRoute
   '/_authenticated/runs': typeof AuthenticatedRunsRoute
   '/_authenticated/snapshots': typeof AuthenticatedSnapshotsRoute
@@ -83,13 +92,26 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/login' | '/runs' | '/snapshots' | '/sandboxes/$name' | '/sandboxes/'
+    | '/'
+    | '/$'
+    | '/login'
+    | '/runs'
+    | '/snapshots'
+    | '/sandboxes/$name'
+    | '/sandboxes/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/login' | '/runs' | '/snapshots' | '/' | '/sandboxes/$name' | '/sandboxes'
+    | '/$'
+    | '/login'
+    | '/runs'
+    | '/snapshots'
+    | '/'
+    | '/sandboxes/$name'
+    | '/sandboxes'
   id:
     | '__root__'
     | '/_authenticated'
+    | '/$'
     | '/login'
     | '/_authenticated/runs'
     | '/_authenticated/snapshots'
@@ -100,11 +122,19 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  SplatRoute: typeof SplatRoute
   LoginRoute: typeof LoginRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -178,6 +208,7 @@ const AuthenticatedRouteRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  SplatRoute: SplatRoute,
   LoginRoute: LoginRoute,
 }
 export const routeTree = rootRouteImport

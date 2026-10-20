@@ -86,7 +86,7 @@ export function XtermView({ sandboxName, active }: TermProps) {
 
     socket.addEventListener("open", () => {
       useTerminalActivity.getState().setConnected(sessionId, true);
-      terminal.writeln(`\x1b[38;2;194;240;106mConnected to ${sandboxName}\x1b[0m\r\n`);
+      terminal.writeln(`\x1b[38;2;0;255;135mConnected to ${sandboxName}\x1b[0m\r\n`);
       sendResize(terminal.rows, terminal.cols);
     });
 

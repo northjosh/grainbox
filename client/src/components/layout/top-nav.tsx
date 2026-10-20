@@ -16,8 +16,18 @@ export function TopNav({ session }: { session: Session }) {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto flex h-12 w-full max-w-6xl items-center gap-5 px-4 sm:px-6">
-        <Link to="/" className="font-mono text-sm font-semibold tracking-tight">
-          sandbox
+        <Link
+          to="/"
+          className="flex items-center gap-2 font-mono text-sm font-semibold tracking-tight"
+        >
+          <img
+            src="/icon-180.png"
+            alt=""
+            width={20}
+            height={20}
+            className="size-5 rounded-[5px] ring-1 ring-white/10"
+          />
+          grainbox
         </Link>
 
         <nav className="flex items-center gap-4">

@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -13,53 +14,56 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --primary: #00b86b;
+  --primary-foreground: #0d0f12;
+  --secondary: #f0f2f4;
+  --secondary-foreground: #0d0f12;
+  --muted: #f0f2f4;
+  --muted-foreground: #6b7280;
+  --accent: #f0f2f4;
+  --accent-foreground: #0d0f12;
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --success: oklch(0.596 0.145 163.225);
-  --success-foreground: oklch(0.985 0 0);
+  --success: #00a862;
+  --success-foreground: #ffffff;
   --warning: oklch(0.769 0.188 70.08);
   --warning-foreground: oklch(0.216 0.006 56.043);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  /* Terminal surfaces stay dark-green in both themes, like a real shell. */
+  --border: #e2e5e9;
+  --input: #e2e5e9;
+  --ring: #00b4db;
+  /* Terminal surfaces stay dark in both themes, like a real shell. */
   --terminal: #111411;
-  --terminal-foreground: #e6ece5;
-  --terminal-accent: #d2ed61;
+  --terminal-foreground: #f3f4f6;
+  --terminal-accent: #00ff87;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --background: #0d0f12;
+  --foreground: #f3f4f6;
+  --card: #16191e;
+  --card-foreground: #f3f4f6;
+  --popover: #16191e;
+  --popover-foreground: #f3f4f6;
+  --primary: #00ff87;
+  --primary-foreground: #0d0f12;
+  --secondary: #16191e;
+  --secondary-foreground: #f3f4f6;
+  --muted: #16191e;
+  --muted-foreground: #6b7280;
+  --accent: #1d222a;
+  --accent-foreground: #f3f4f6;
   --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-  --success: oklch(0.696 0.17 162.48);
-  --success-foreground: oklch(0.145 0 0);
+  --destructive-foreground: #0d0f12;
+  --success: #00ff87;
+  --success-foreground: #0d0f12;
   --warning: oklch(0.828 0.189 84.429);
   --warning-foreground: oklch(0.216 0.006 56.043);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --border: #262c34;
+  --input: #2f3640;
+  --ring: #00d2ff;
+  --terminal: #0a0c0f;
+  --terminal-foreground: #f3f4f6;
+  --terminal-accent: #00ff87;
 }
 
 @theme inline {
@@ -94,7 +98,8 @@
   --color-terminal-foreground: var(--terminal-foreground);
   --color-terminal-accent: var(--terminal-accent);
   --font-mono:
-    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    "JetBrains Mono Variable", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
   --font-sans: "Inter Variable", sans-serif;
 }
 

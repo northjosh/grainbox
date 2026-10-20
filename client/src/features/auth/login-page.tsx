@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { getRouteApi, useNavigate, useRouter } from "@tanstack/react-router";
-import { ArrowRight, Loader2, Terminal } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 
 import { SandBoxArt } from "@/features/auth/ascii-art";
 import { authClient } from "@/features/auth/auth-client";
@@ -86,10 +86,14 @@ export function LoginPage() {
 
         <div className="relative flex h-full flex-col justify-between p-10">
           <div className="flex items-center gap-2.5">
-            <div className="flex size-8 items-center justify-center rounded-md bg-white text-zinc-950">
-              <Terminal className="size-4" />
-            </div>
-            <span className="font-semibold tracking-tight text-white">sandbox</span>
+            <img
+              src="/icon-180.png"
+              alt=""
+              width={32}
+              height={32}
+              className="size-8 rounded-md ring-1 ring-white/10"
+            />
+            <span className="font-semibold tracking-tight text-white">grainbox</span>
           </div>
 
           <div className="max-w-md space-y-6">
