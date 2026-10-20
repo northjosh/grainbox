@@ -12,6 +12,7 @@ export const DEFAULT_MEMORY = 512; //512 mb
 export const MAX_CPUS = 1; // 1 vcpu
 export const MAX_MEMORY = 512; //512 mb
 export const ADMIN_SECRET = process.env.ADMIN_SECRET ?? "yadayadda";
+export const ADMIN_LISTEN_ADDR= process.env.ADMIN_LISTEN_ADDR ?? "http://localhost:9090"
 export const MAX_PORTS = 5;
 export const BASE_DOMAIN = process.env.BASE_DOMAIN   ?? "grainboxapps.northjosh.com";
 export const DEFAULT_GUEST_PORT = 7123;

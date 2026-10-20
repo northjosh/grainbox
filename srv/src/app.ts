@@ -16,6 +16,9 @@ export function createApp() {
   app.use(sentry(app));
 
   app.use("/assets/*", serveStatic({ root: "./public" }));
+  app.use("/icon.png", serveStatic({ root: "./public" }));
+  app.use("/icon-180.png", serveStatic({ root: "./public" }));
+  app.use("/icon-32.png", serveStatic({ root: "./public" }));
   app.get("/", serveStatic({ root: "./public/" }));
 
   const api = app.basePath("/api");
@@ -32,10 +35,19 @@ export function createApp() {
   api.route("/", snapshotRoutes);
   api.route("/", portRoutes);
 
-  api.onError((err, c) => {
+  api.all("*", (c) => c.json({ error: "Not found" }, 404));
+
+  app.get("*", (c, next) => {
+    if (!c.req.header("accept")?.includes("text/html")) {
+      return next();
+    }
+
+    return serveStatic({ root: "./public", path: "index.html" })(c, next);
+  });
+
+  app.onError((err, c) => {
     c.get("log").error(err);
     return c.json({ error: err.message }, 500);
   });
-
   return app;
 }

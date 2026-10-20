@@ -2,8 +2,8 @@ import { serve } from "@hono/node-server";
 import { WebSocketServer } from "ws";
 import { ensureRuntime } from "microsandbox";
 import { log } from "evlog";
-import { initSentry } from "#/sentry.config.js";
-import { createApp } from "@/app.js";
+import { initSentry } from "../sentry.config.js";
+import { createApp } from "./app.js";
 
 initSentry();
 await ensureRuntime();

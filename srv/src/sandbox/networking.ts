@@ -1,8 +1,8 @@
-import { ADMIN_SECRET } from "../constants.js";
+import { ADMIN_LISTEN_ADDR, ADMIN_SECRET } from "../constants.js";
 
 export async function getPorts() {
   try {
-    const res = await fetch(`http://localhost:9090/sandboxes/`, {
+    const res = await fetch(`http://${ADMIN_LISTEN_ADDR}/sandboxes/`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${ADMIN_SECRET} `,
@@ -20,7 +20,7 @@ export async function getPorts() {
 
 export async function setPort(id: string) {
   try {
-    const res = await fetch(`http://localhost:9090/sandboxes/${encodeURIComponent(id)}`, {
+    const res = await fetch(`http://${ADMIN_LISTEN_ADDR}/sandboxes/${encodeURIComponent(id)}`, {
       method: "PUT",
       headers: {
         Authorization: `Bearer ${ADMIN_SECRET}`,
@@ -45,7 +45,7 @@ export async function registerRoute(
   guestPort: string | number,
 ) {
   try {
-    const res = await fetch(`http://localhost:9090/register/${encodeURIComponent(hostPort)}`, {
+    const res = await fetch(`http://${ADMIN_LISTEN_ADDR}/register/${encodeURIComponent(hostPort)}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${ADMIN_SECRET}`,
@@ -67,7 +67,7 @@ export async function registerRoute(
 
 export async function deregisterRoute(id: string) {
   try {
-    const res = await fetch(`http://localhost:9090/register/${encodeURIComponent(id)}`, {
+    const res = await fetch(`http://${ADMIN_LISTEN_ADDR}/register/${encodeURIComponent(id)}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${ADMIN_SECRET}`,
@@ -88,7 +88,7 @@ export async function deregisterRoute(id: string) {
 
 export async function releasePort(port: number) {
   try {
-    const res = await fetch(`http://localhost:9090/sandboxes/${encodeURIComponent(port)}`, {
+    const res = await fetch(`http://${ADMIN_LISTEN_ADDR}/sandboxes/${encodeURIComponent(port)}`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${ADMIN_SECRET} `,

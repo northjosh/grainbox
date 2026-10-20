@@ -175,15 +175,18 @@ sandboxesRoutes.post("/test", validateImage, validateCommand, async (c: Context<
   running++;
   const name = generateSandboxName();
   try {
-    await using sb = await Sandbox.builder(name).image(image).cpus(1).maxMemory(512).create();
-
-    const out = await Promise.race([
-      sb.shell(command),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Timeout")), TIMEOUT_MS)),
-    ]);
-    const res = out.stdout();
-    sb.destroy();
-    return c.text(res);
+    const sb = await Sandbox.builder(name).image(image).cpus(1).maxMemory(512).create();
+    try {
+      const out = await Promise.race([
+        sb.shell(command),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout")), TIMEOUT_MS),
+        ),
+      ]);
+      return c.text(out.stdout());
+    } finally {
+      await sb.destroy();
+    }
   } catch (e) {
     log.error(e as Error);
     const isTimeout = e instanceof Error && e.message === "Timeout";
