@@ -3,6 +3,7 @@ import { Loader2, Play, Square, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { formatResources } from "@/lib/resources";
 import type { PersistentSandbox } from "@/lib/api";
 
 type SandboxListProps = {
@@ -49,6 +50,7 @@ export function SandboxList({
         <tr className="text-left font-mono text-xs text-muted-foreground">
           <th className="py-2 pr-4 font-normal">name</th>
           <th className="py-2 pr-4 font-normal">image</th>
+          <th className="py-2 pr-4 font-normal">resources</th>
           <th className="py-2 pr-4 font-normal">status</th>
           <th className="py-2 pr-4 font-normal">created</th>
           <th className="py-2" />
@@ -77,6 +79,9 @@ export function SandboxList({
               </td>
               <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">
                 {sandbox.image ?? "—"}
+              </td>
+              <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">
+                {formatResources(sandbox.cpu, sandbox.memory)}
               </td>
               <td className="py-2.5 pr-4">
                 <span className="flex items-center gap-1.5 font-mono text-xs text-muted-foreground">

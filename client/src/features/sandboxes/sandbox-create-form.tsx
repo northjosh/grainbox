@@ -12,10 +12,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { IMAGES, createSandbox, type Image } from "@/lib/api";
+import { formatMemory } from "@/lib/resources";
+
+const CPU_OPTIONS = [1, 2];
+const MEMORY_OPTIONS = [256, 512];
+const DISK_OPTIONS = [2048, 4096, 8192];
 
 export function SandboxCreateForm({ onCreated }: { onCreated: (name: string) => void }) {
   const [name, setName] = useState("");
   const [image, setImage] = useState<Image>("alpine");
+  const [cpu, setCpu] = useState(1);
+  const [memory, setMemory] = useState(512);
+  const [disk, setDisk] = useState(8192);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +35,7 @@ export function SandboxCreateForm({ onCreated }: { onCreated: (name: string) => 
     setPending(true);
     setError(null);
     try {
-      await createSandbox(trimmed, image);
+      await createSandbox(trimmed, image, { cpu, memory, disk });
       setName("");
       onCreated(trimmed);
     } catch (cause) {
@@ -79,6 +87,71 @@ export function SandboxCreateForm({ onCreated }: { onCreated: (name: string) => 
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div className="grid gap-1.5">
+          <Label
+            htmlFor="sandbox-cpu"
+            className="font-mono text-xs font-normal text-muted-foreground"
+          >
+            cpu
+          </Label>
+          <Select value={String(cpu)} onValueChange={(value) => setCpu(Number(value))}>
+            <SelectTrigger id="sandbox-cpu" className="w-full font-mono">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CPU_OPTIONS.map((option) => (
+                <SelectItem key={option} value={String(option)} className="font-mono">
+                  {option} vcpu
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid gap-1.5">
+          <Label
+            htmlFor="sandbox-memory"
+            className="font-mono text-xs font-normal text-muted-foreground"
+          >
+            memory
+          </Label>
+          <Select value={String(memory)} onValueChange={(value) => setMemory(Number(value))}>
+            <SelectTrigger id="sandbox-memory" className="w-full font-mono">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MEMORY_OPTIONS.map((option) => (
+                <SelectItem key={option} value={String(option)} className="font-mono">
+                  {option} MB
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid gap-1.5">
+          <Label
+            htmlFor="sandbox-disk"
+            className="font-mono text-xs font-normal text-muted-foreground"
+          >
+            disk
+          </Label>
+          <Select value={String(disk)} onValueChange={(value) => setDisk(Number(value))}>
+            <SelectTrigger id="sandbox-disk" className="w-full font-mono">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {DISK_OPTIONS.map((option) => (
+                <SelectItem key={option} value={String(option)} className="font-mono">
+                  {formatMemory(option)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Button type="submit" className="w-full font-mono" disabled={!name.trim() || pending}>

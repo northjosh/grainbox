@@ -1,3 +1,9 @@
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const PROJECT_ROOT = fileURLToPath(new URL("../../", import.meta.url));
+const projectPath = (value: string) => resolve(PROJECT_ROOT, value);
+
 export const ALLOWED_IMAGES = new Set(["python", "debian", "alpine"]);
 export const PREFIX = "sbx-";
 export const SESSION_COOKIE = "session_id";
@@ -9,14 +15,21 @@ export const TIMEOUT_MS = 30_000;
 export const SESSION_TTL_SECONDS = 60 * 60;
 export const DEFAULT_CPUS = 1; // 1 vcpu
 export const DEFAULT_MEMORY = 512; //512 mb
-export const MAX_CPUS = 1; // 1 vcpu
+export const DEFAULT_DISK = 8192; //8192 mb
+export const MAX_DISK = 8192; //8192 mb
+export const MAX_CPUS = 2; // 2 vcpu
 export const MAX_MEMORY = 512; //512 mb
 export const ADMIN_SECRET = process.env.ADMIN_SECRET ?? "yadayadda";
 export const ADMIN_LISTEN_ADDR= process.env.ADMIN_LISTEN_ADDR ?? "http://localhost:9090"
 export const MAX_PORTS = 5;
 export const BASE_DOMAIN = process.env.BASE_DOMAIN   ?? "grainboxapps.northjosh.com";
 export const DEFAULT_GUEST_PORT = 7123;
-export const GATEWAY_EXECUTABLE_PATH = process.env.GATEWAY_EXECUTABLE_PATH ?? "../gateway/";
+export const GATEWAY_EXECUTABLE_PATH = process.env.GATEWAY_EXECUTABLE_PATH
+  ? process.env.GATEWAY_EXECUTABLE_PATH
+  : projectPath("gateway/gateway");
+export const PORTS_EXECUTABLE_PATH = process.env.PORTS_EXECUTABLE_PATH
+  ? process.env.PORTS_EXECUTABLE_PATH
+  : projectPath("ports/ports");
 export const DEFAULT_SHELLS: Record<string, string> = {
   alpine: "/bin/sh",
   debian: "/bin/bash",

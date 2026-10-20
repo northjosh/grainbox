@@ -110,11 +110,28 @@ export async function listSandboxes(query = ""): Promise<PersistentSandbox[]> {
   return result.results;
 }
 
-export async function createSandbox(name: string, image: Image): Promise<PersistentSandbox> {
+export async function getSandbox(name: string): Promise<PersistentSandbox> {
+  const result = await requestJson<{ sandbox: PersistentSandbox }>(
+    `/api/sandboxes/${encodeURIComponent(name)}`,
+  );
+  return result.sandbox;
+}
+
+export interface SandboxResources {
+  cpu: number;
+  memory: number;
+  disk: number;
+}
+
+export async function createSandbox(
+  name: string,
+  image: Image,
+  resources: SandboxResources,
+): Promise<PersistentSandbox> {
   const result = await requestJson<{ sandbox: PersistentSandbox }>("/api/sandboxes", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name, image }),
+    body: JSON.stringify({ name, image, ...resources }),
   });
   return result.sandbox;
 }

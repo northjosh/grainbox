@@ -12,13 +12,18 @@ import { validateName, validateImage, validateCommand, validateSandbox } from ".
 import {
   ALLOWED_IMAGES,
   DEFAULT_CPUS,
+  DEFAULT_DISK,
   DEFAULT_GUEST_PORT,
   DEFAULT_MEMORY,
   DEFAULT_SHELLS,
   EXEC_TIMEOUT_MS,
   GATEWAY_EXECUTABLE_PATH,
   MAX_CONCURRENT,
+  MAX_CPUS,
+  MAX_DISK,
+  MAX_MEMORY,
   MAX_SANDBOXES,
+  PORTS_EXECUTABLE_PATH,
   PREFIX,
   TIMEOUT_MS,
 } from "../constants.js";
@@ -29,13 +34,26 @@ export const sandboxesRoutes = new Hono<Env>();
 
 let running = 0;
 
+function parseResource(value: unknown, fallback: number, min: number, max: number): number | null {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < min || value > max) {
+    return null;
+  }
+  return value;
+}
+
 sandboxesRoutes.post("/sandboxes", validateName, validateImage, async (c: Context<Env>) => {
-  const { name, image } = await c.req.json();
+  const { name, image, cpu, memory, disk } = await c.req.json();
   const user = c.get("user");
   const log = c.get("log");
 
-  const memory = DEFAULT_MEMORY;
-  const cpu = DEFAULT_CPUS;
+  const cpuCount = parseResource(cpu, DEFAULT_CPUS, 1, MAX_CPUS);
+  const memoryMib = parseResource(memory, DEFAULT_MEMORY, 128, MAX_MEMORY);
+  const diskMib = parseResource(disk, DEFAULT_DISK, 512, MAX_DISK);
+
+  if (cpuCount === null || memoryMib === null || diskMib === null) {
+    return c.json({ error: "invalid resources" }, 400);
+  }
 
   const existing = await db.query.sandboxes.findMany({
     where: (sandboxes, { eq }) => eq(sandboxes.user, user.id),
@@ -64,15 +82,17 @@ sandboxesRoutes.post("/sandboxes", validateName, validateImage, async (c: Contex
     sandbox = await Sandbox.builder(msbName)
       .image(image)
       // .imageWith((i) => i.disk(").fstype("ext4"))
-      .cpus(cpu)
-      .memory(memory)
+      .cpus(cpuCount)
+      .rootDisk(diskMib)
+      .memory(memoryMib)
+      .maxCpus(MAX_CPUS)
+      .maxMemory(MAX_MEMORY)
       .port(port, DEFAULT_GUEST_PORT)
       .patch((p) =>
         p
           .mkdir("/opt/gb", { mode: 0o755 })
-          // .copyFile(`../init/tini-static`, "/usr/bin/tini", { mode: 0o755 })
-          .copyFile(`../ports/ports`, "/usr/bin/ports", { mode: 0o755 })
-          .copyFile(`${GATEWAY_EXECUTABLE_PATH}/gateway`, "/opt/gb/gateway", { mode: 0o755 }),
+          .copyFile(PORTS_EXECUTABLE_PATH, "/usr/bin/ports", { mode: 0o755 })
+          .copyFile(GATEWAY_EXECUTABLE_PATH, "/opt/gb/gateway", { mode: 0o755 }),
       )
       .script("start-gateway", `#!/bin/sh\n /opt/gb/gateway --port ${DEFAULT_GUEST_PORT} \n`)
       .script("scan-ports", `#!/bin/sh\n /usr/bin/ports\n`)
@@ -89,8 +109,8 @@ sandboxesRoutes.post("/sandboxes", validateName, validateImage, async (c: Contex
         guestPort: DEFAULT_GUEST_PORT, // or generate a random port with randomPort()
         image,
         status: "running",
-        memory,
-        cpu,
+        memory: memoryMib,
+        cpu: cpuCount,
       })
       .returning();
     const distro = (await sandbox.shell("check-shell")).stdout().trim();
@@ -117,6 +137,11 @@ sandboxesRoutes.get("/sandboxes", async (c: Context<Env>) => {
         : eq(sandboxes.user, user.id),
   });
   return c.json({ results });
+});
+
+// Get one
+sandboxesRoutes.get("/sandboxes/:name", validateSandbox, async (c: Context<Env>) => {
+  return c.json({ sandbox: c.get("sandbox") });
 });
 
 // starts
@@ -253,6 +278,10 @@ sandboxesRoutes.get(
       }
     }
 
+    if (sandbox.status !== "running") {
+      await db.update(sandboxes).set({ status: "running" }).where(eq(sandboxes.id, sandbox.id));
+    }
+
     const shell = sandbox.distro?.trim() ?? "alpine";
     const process = await sb.execStreamWith(DEFAULT_SHELLS[shell] || "/bin/sh", (e: any) => {
       return e.args(["-i"]).tty(true).stdinPipe();
@@ -321,6 +350,35 @@ sandboxesRoutes.get("/sandboxes/:name/log-stream", validateSandbox, async (c: Co
       const logStream = await handle.logStream({ follow: true });
       for await (const s of logStream) {
         await stream.writeSSE({ id: randomUUID(), data: s.text().trimEnd(), event: "log-stream" });
+      }
+    });
+  } catch {
+    return c.json({ error: "no such sandbox" }, 400);
+  }
+});
+
+sandboxesRoutes.get("/sandboxes/:name/live-metrics", validateSandbox, async (c: Context<Env>) => {
+  const sandbox = c.get("sandbox");
+  try {
+    return streamSSE(c, async (stream) => {
+      const handle = await Sandbox.get(sandbox.msbName);
+      const sb = await handle.connectOrStart();
+      for await (const s of await sb.metricsStream(1000)) {
+        await stream.writeSSE({
+          id: randomUUID(),
+          data: JSON.stringify({
+            timestamp: s.timestamp,
+            cpu: s.cpuPercent,
+            memory: s.memoryBytes,
+            memoryFree: s.memoryAvailableBytes,
+            diskReadBytes: s.diskReadBytes,
+            diskWriteBytes: s.diskWriteBytes,
+            networkRx: s.netRxBytes,
+            networkTx: s.netTxBytes,
+            uptime: s.uptimeMs,
+          }),
+          event: "metrics-stream",
+        });
       }
     });
   } catch {
