@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   deleteSandbox,
   listSandboxes,
+  pauseSandbox,
   startSandbox,
   stopSandbox,
   type PersistentSandbox,
@@ -60,6 +61,23 @@ export function useSandboxes(query = "") {
     [setStatus],
   );
 
+  const pause = useCallback(
+    async (sandbox: PersistentSandbox) => {
+      if (!sandbox.name) return;
+      setWorking(`pause:${sandbox.id}`);
+      setError(null);
+      try {
+        await pauseSandbox(sandbox.name);
+        setStatus(sandbox.id, "paused");
+      } catch (cause) {
+        setError(message(cause));
+      } finally {
+        setWorking(null);
+      }
+    },
+    [setStatus],
+  );
+
   const stop = useCallback(
     async (sandbox: PersistentSandbox) => {
       if (!sandbox.name) return;
@@ -87,5 +105,5 @@ export function useSandboxes(query = "") {
     }
   }, []);
 
-  return { sandboxes, loading, working, error, refresh, start, stop, remove };
+  return { sandboxes, loading, working, error, refresh, start, pause, stop, remove };
 }

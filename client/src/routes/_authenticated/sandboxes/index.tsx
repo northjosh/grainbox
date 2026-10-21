@@ -19,7 +19,8 @@ function SandboxesPage() {
   const [query, setQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const { sandboxes, loading, working, error, refresh, start, stop, remove } = useSandboxes(query);
+  const { sandboxes, loading, working, error, refresh, start, pause, stop, remove } =
+    useSandboxes(query);
   const navigate = useNavigate();
   const { new: newSandbox } = Route.useSearch();
 
@@ -134,6 +135,7 @@ function SandboxesPage() {
         working={working}
         searchQuery={query.trim()}
         onStart={(s) => void start(s)}
+        onPause={(s) => void pause(s)}
         onStop={(s) => void stop(s)}
         onDelete={(s) => void remove(s)}
       />

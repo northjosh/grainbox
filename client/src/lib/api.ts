@@ -155,6 +155,13 @@ export async function startSandbox(name: string): Promise<void> {
   if (!res.ok) throw new Error(await readErrorBody(res));
 }
 
+export async function pauseSandbox(name: string): Promise<void> {
+  const res = await fetch(`/api/sandboxes/${encodeURIComponent(name)}/pause`, {
+    method: "PUT",
+  });
+  if (!res.ok) throw new Error(await readErrorBody(res));
+}
+
 export async function stopSandbox(name: string): Promise<void> {
   const res = await fetch(`/api/sandboxes/${encodeURIComponent(name)}/stop`, {
     method: "PUT",

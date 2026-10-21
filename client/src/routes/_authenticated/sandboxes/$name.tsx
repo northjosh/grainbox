@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useBlocker, useNavigate } from "@tanstack/react-router";
-import { Camera, Gauge, Loader2, Play, Plug, ScrollText, Square, Trash2 } from "lucide-react";
+import {
+  Camera,
+  Gauge,
+  Loader2,
+  Pause,
+  Play,
+  Plug,
+  ScrollText,
+  Square,
+  Trash2,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { LogsPanel } from "@/features/logs/logs-panel";
@@ -12,7 +22,7 @@ import { SnapshotsPanel } from "@/features/snapshots/snapshots-panel";
 import { LeaveTerminalDialog } from "@/features/terminal/leave-terminal-dialog";
 import { TerminalTabs } from "@/features/terminal/terminal-tabs";
 import { useActiveTerminalCount } from "@/features/terminal/terminal-activity-store";
-import { deleteSandbox, startSandbox, stopSandbox } from "@/lib/api";
+import { deleteSandbox, pauseSandbox, startSandbox, stopSandbox } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { formatResources } from "@/lib/resources";
 
@@ -27,7 +37,7 @@ function SandboxTerminalPage() {
   const [showSnapshots, setShowSnapshots] = useState(false);
   const [showMetrics, setShowMetrics] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
-  const [working, setWorking] = useState<"start" | "stop" | "delete" | null>(null);
+  const [working, setWorking] = useState<"start" | "pause" | "stop" | "delete" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleted, setDeleted] = useState(false);
   const [terminalEpoch, setTerminalEpoch] = useState(0);
@@ -37,8 +47,10 @@ function SandboxTerminalPage() {
   const showAside = showPorts || showLogs || showSnapshots;
 
   const activeTerminals = useActiveTerminalCount();
-  const running =
-    status !== null ? status === "running" : activeTerminals > 0 || sandbox?.status === "running";
+  const lifecycle =
+    status ?? (activeTerminals > 0 ? "running" : (sandbox?.status ?? "unknown"));
+  const running = lifecycle === "running";
+  const paused = lifecycle === "paused";
 
   const blocker = useBlocker({
     shouldBlockFn: () => true,
@@ -61,12 +73,27 @@ function SandboxTerminalPage() {
 
   async function handleStart() {
     if (working) return;
+    const resuming = paused;
     setWorking("start");
     setActionError(null);
     try {
       await startSandbox(name);
       setStatus("running");
-      setTerminalEpoch((value) => value + 1);
+      if (!resuming) setTerminalEpoch((value) => value + 1);
+    } catch (cause) {
+      setActionError(cause instanceof Error ? cause.message : String(cause));
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  async function handlePause() {
+    if (working) return;
+    setWorking("pause");
+    setActionError(null);
+    try {
+      await pauseSandbox(name);
+      setStatus("paused");
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -118,28 +145,46 @@ function SandboxTerminalPage() {
         ) : null}
 
         <div className="ml-auto flex items-center gap-1">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            title={running ? `Stop ${name}` : `Start ${name}`}
-            aria-label={running ? `Stop ${name}` : `Start ${name}`}
-            disabled={working !== null}
-            onClick={() => void (running ? handleStop() : handleStart())}
-            className={cn(
-              running
-                ? "hover:bg-warning/10 [&_svg]:text-warning"
-                : "hover:bg-success/10 [&_svg]:text-success",
-            )}
-          >
-            {working === "start" || working === "stop" ? (
-              <Loader2 className="animate-spin" />
-            ) : running ? (
-              <Square />
-            ) : (
-              <Play />
-            )}
-          </Button>
+          {running ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              title={`Pause ${name}`}
+              aria-label={`Pause ${name}`}
+              disabled={working !== null}
+              onClick={() => void handlePause()}
+            >
+              {working === "pause" ? <Loader2 className="animate-spin" /> : <Pause />}
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              title={paused ? `Resume ${name}` : `Start ${name}`}
+              aria-label={paused ? `Resume ${name}` : `Start ${name}`}
+              disabled={working !== null}
+              onClick={() => void handleStart()}
+              className="hover:bg-success/10 [&_svg]:text-success"
+            >
+              {working === "start" ? <Loader2 className="animate-spin" /> : <Play />}
+            </Button>
+          )}
+          {running || paused ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              title={`Stop ${name}`}
+              aria-label={`Stop ${name}`}
+              disabled={working !== null}
+              onClick={() => void handleStop()}
+              className="hover:bg-warning/10 [&_svg]:text-warning"
+            >
+              {working === "stop" ? <Loader2 className="animate-spin" /> : <Square />}
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="ghost"
@@ -214,7 +259,7 @@ function SandboxTerminalPage() {
         className={cn("grid items-start gap-4", showAside && "lg:grid-cols-[minmax(0,1fr)_18rem]")}
       >
         <div className="min-w-0 overflow-hidden rounded-md border border-white/10 bg-terminal">
-          {showMetrics && activeTerminals > 0 ? (
+          {showMetrics && activeTerminals > 0 && !paused ? (
             <MetricsBar sandboxName={name} memoryLimitMib={sandbox?.memory ?? null} />
           ) : null}
           <TerminalTabs key={`${name}:${terminalEpoch}`} sandboxName={name} />

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Loader2, Play, Square, Trash2 } from "lucide-react";
+import { Loader2, Pause, Play, Square, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,7 @@ type SandboxListProps = {
   working: string | null;
   searchQuery?: string;
   onStart: (sandbox: PersistentSandbox) => void;
+  onPause: (sandbox: PersistentSandbox) => void;
   onStop: (sandbox: PersistentSandbox) => void;
   onDelete: (sandbox: PersistentSandbox) => void;
 };
@@ -27,6 +28,7 @@ export function SandboxList({
   working,
   searchQuery = "",
   onStart,
+  onPause,
   onStop,
   onDelete,
 }: SandboxListProps) {
@@ -59,7 +61,9 @@ export function SandboxList({
       <tbody className="divide-y border-t">
         {sandboxes.map((sandbox) => {
           const running = sandbox.status === "running";
+          const paused = sandbox.status === "paused";
           const busy = working?.endsWith(sandbox.id) ?? false;
+          const busyAction = busy ? working?.split(":")[0] : null;
           const label = sandbox.name ?? "sandbox";
 
           return (
@@ -89,7 +93,7 @@ export function SandboxList({
                     aria-hidden="true"
                     className={cn(
                       "size-1.5 rounded-full",
-                      running ? "bg-success" : "bg-muted-foreground",
+                      paused ? "bg-warning" : running ? "bg-success" : "bg-muted-foreground",
                     )}
                   />
                   {sandbox.status ?? "unknown"}
@@ -114,8 +118,44 @@ export function SandboxList({
                         : "hover:bg-success/10 [&_svg]:text-success",
                     )}
                   >
-                    {busy ? <Loader2 className="animate-spin" /> : running ? <Square /> : <Play />}
+                    {busyAction === "start" || busyAction === "stop" ? (
+                      <Loader2 className="animate-spin" />
+                    ) : running ? (
+                      <Square />
+                    ) : (
+                      <Play />
+                    )}
                   </Button>
+                  {running ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      title={`Pause ${label}`}
+                      aria-label={`Pause ${label}`}
+                      disabled={working !== null}
+                      onClick={() => onPause(sandbox)}
+                    >
+                      {busyAction === "pause" ? <Loader2 className="animate-spin" /> : <Pause />}
+                    </Button>
+                  ) : paused ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      title={`Stop ${label}`}
+                      aria-label={`Stop ${label}`}
+                      disabled={working !== null}
+                      onClick={() => onStop(sandbox)}
+                      className="hover:bg-warning/10 [&_svg]:text-warning"
+                    >
+                      {busyAction === "stop" ? (
+                        <Loader2 className="animate-spin" />
+                      ) : (
+                        <Square />
+                      )}
+                    </Button>
+                  ) : null}
                   <Button
                     type="button"
                     variant="ghost"

@@ -149,8 +149,30 @@ sandboxesRoutes.put("/sandboxes/:name/start", validateSandbox, async (c: Context
   const record = c.get("sandbox");
   try {
     const handle = await Sandbox.get(record.msbName);
-    await handle.startDetached();
+    if (record.status === "paused") {
+      await handle.resume();
+    } else {
+      await handle.startDetached();
+    }
     await db.update(sandboxes).set({ status: "running" }).where(eq(sandboxes.id, record.id));
+    return c.json({ success: true });
+  } catch {
+    return c.json({ error: "no such sandbox" }, 404);
+  }
+});
+
+// pause
+sandboxesRoutes.put("/sandboxes/:name/pause", validateSandbox, async (c: Context<Env>) => {
+  const record = c.get("sandbox");
+
+  if (record.status === "paused") {
+    return c.json({ success: true });
+  }
+
+  try {
+    const handle = await Sandbox.get(record.msbName);
+    await handle.pause();
+    await db.update(sandboxes).set({ status: "paused" }).where(eq(sandboxes.id, record.id));
     return c.json({ success: true });
   } catch {
     return c.json({ error: "no such sandbox" }, 404);
@@ -268,13 +290,18 @@ sandboxesRoutes.get(
     let sb: Sandbox;
 
     const handle = await Sandbox.get(sandbox.msbName);
-    try {
-      sb = await handle.startDetached();
-    } catch (e) {
-      if (e instanceof SandboxStillRunningError) {
-        sb = await handle.connect();
-      } else {
-        throw e;
+    if (sandbox.status === "paused") {
+      await handle.resume();
+      sb = await handle.connect();
+    } else {
+      try {
+        sb = await handle.startDetached();
+      } catch (e) {
+        if (e instanceof SandboxStillRunningError) {
+          sb = await handle.connect();
+        } else {
+          throw e;
+        }
       }
     }
 
