@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { createFileRoute, Link, useBlocker, useNavigate } from "@tanstack/react-router";
 import {
   Camera,
+  FolderTree,
   Gauge,
   Loader2,
   Pause,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { FilesPanel } from "@/features/files/files-panel";
 import { LogsPanel } from "@/features/logs/logs-panel";
 import { MetricsBar } from "@/features/metrics/metrics-bar";
 import { PortsPanel } from "@/features/ports/ports-panel";
@@ -34,6 +36,7 @@ export const Route = createFileRoute("/_authenticated/sandboxes/$name")({
 
 function SandboxTerminalPage() {
   const { name } = Route.useParams();
+  const [showFiles, setShowFiles] = useState(true);
   const [showPorts, setShowPorts] = useState(true);
   const [showLogs, setShowLogs] = useState(false);
   const [showSnapshots, setShowSnapshots] = useState(false);
@@ -44,7 +47,7 @@ function SandboxTerminalPage() {
   const ports = useSandboxPorts(name);
   const { sandbox, refresh } = useSandbox(name);
   const navigate = useNavigate();
-  const showAside = showPorts || showLogs || showSnapshots;
+  const showAside = showFiles || showPorts || showLogs || showSnapshots;
 
   const activeTerminals = useActiveTerminalCount();
   const lifecycle = sandbox?.status ?? (activeTerminals > 0 ? "running" : "unknown");
@@ -212,6 +215,18 @@ function SandboxTerminalPage() {
             variant="ghost"
             size="xs"
             className="font-mono text-xs text-muted-foreground"
+            aria-pressed={showFiles}
+            title={showFiles ? "Hide files" : "Show files"}
+            onClick={() => setShowFiles((value) => !value)}
+          >
+            <FolderTree />
+            files
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            className="font-mono text-xs text-muted-foreground"
             aria-pressed={showPorts}
             title={showPorts ? "Hide ports" : "Show ports"}
             onClick={() => setShowPorts((value) => !value)}
@@ -271,6 +286,13 @@ function SandboxTerminalPage() {
 
         {showAside ? (
           <div className="grid gap-4 lg:sticky lg:top-16">
+            {showFiles ? (
+              <FilesPanel
+                sandboxName={name}
+                enabled={running}
+                onClose={() => setShowFiles(false)}
+              />
+            ) : null}
             {showPorts ? <PortsPanel {...ports} onClose={() => setShowPorts(false)} /> : null}
             {showSnapshots ? (
               <SnapshotsPanel sandboxName={name} onClose={() => setShowSnapshots(false)} />

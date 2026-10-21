@@ -176,6 +176,23 @@ export async function deleteSandbox(name: string): Promise<void> {
   if (!res.ok) throw new Error(await readErrorBody(res));
 }
 
+export interface SandboxFile {
+  path: string;
+  kind: string;
+  size: number;
+  mode: number;
+  modified?: number;
+}
+
+export async function listSandboxFiles(name: string, path = "/"): Promise<SandboxFile[]> {
+  const params = new URLSearchParams({ path });
+  const result = await requestJson<{ files: SandboxFile[] }>(
+    `/api/sandboxes/${encodeURIComponent(name)}/files?${params.toString()}`,
+    { method: "POST" },
+  );
+  return result.files;
+}
+
 export interface SandboxPort {
   id: string;
   /** Stored as text in the database, so it arrives as a string. */

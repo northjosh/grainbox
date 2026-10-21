@@ -8,7 +8,13 @@ import { createError } from "evlog";
 import { db } from "../../db/db.js";
 import { sandboxes } from "../../db/schema.js";
 import { generateSandboxName } from "../utils/generate-name.js";
-import { validateName, validateImage, validateCommand, validateSandbox, ensureRunning } from "../middleware.js";
+import {
+  validateName,
+  validateImage,
+  validateCommand,
+  validateSandbox,
+  ensureRunning,
+} from "../middleware.js";
 import {
   ALLOWED_IMAGES,
   DEFAULT_CPUS,
@@ -191,6 +197,26 @@ sandboxesRoutes.put("/sandboxes/:name/stop", validateSandbox, async (c: Context<
     return c.json({ error: "no such sandbox" }, 404);
   }
 });
+
+// list files for a sandbox
+sandboxesRoutes.post(
+  "/sandboxes/:name/files",
+  validateSandbox,
+  ensureRunning,
+  async (c: Context<Env>) => {
+    const record = c.get("sandbox");
+    const path = c.req.query("path") || "/";
+
+    try {
+      const handle = await Sandbox.get(record.msbName);
+      const sb = await handle.connect();
+      const files = await sb.fs().list(path);
+      return c.json({ files });
+    } catch {
+      return c.json({ error: "failed to list files" }, 500);
+    }
+  },
+);
 
 // Stop and delete
 sandboxesRoutes.delete("/sandboxes/:name", validateSandbox, async (c: Context<Env>) => {
