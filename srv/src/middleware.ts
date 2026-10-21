@@ -86,3 +86,13 @@ export const validateSandbox = createMiddleware(async (c: Context<Env>, next: Ne
 
   await next();
 });
+
+export const ensureRunning = createMiddleware(async (c: Context<Env>, next: Next) => {
+  const sandbox = c.get("sandbox");
+
+  if (sandbox.status !== "running") {
+    return c.json({ error: "sandbox is not running" }, 429);
+  }
+
+  await next();
+});

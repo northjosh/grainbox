@@ -1,6 +1,6 @@
 import { Context, Hono } from "hono";
 import { upgradeWebSocket } from "@hono/node-server";
-import { Sandbox, SandboxStillRunningError } from "microsandbox";
+import { Sandbox } from "microsandbox";
 import { streamSSE } from "hono/streaming";
 import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
@@ -8,7 +8,7 @@ import { createError } from "evlog";
 import { db } from "../../db/db.js";
 import { sandboxes } from "../../db/schema.js";
 import { generateSandboxName } from "../utils/generate-name.js";
-import { validateName, validateImage, validateCommand, validateSandbox } from "../middleware.js";
+import { validateName, validateImage, validateCommand, validateSandbox, ensureRunning } from "../middleware.js";
 import {
   ALLOWED_IMAGES,
   DEFAULT_CPUS,
@@ -284,34 +284,18 @@ sandboxesRoutes.post("/sandboxes/:name/exec", validateCommand, async (c: Context
 sandboxesRoutes.get(
   "/sandboxes/:name/ws",
   validateSandbox,
-  upgradeWebSocket(async (c) => {
+  ensureRunning,
+  upgradeWebSocket(async (c: Context<Env>) => {
     const sandbox = c.get("sandbox");
     const log = c.get("log");
     let sb: Sandbox;
 
     const handle = await Sandbox.get(sandbox.msbName);
-    if (sandbox.status === "paused") {
-      await handle.resume();
-      sb = await handle.connect();
-    } else {
-      try {
-        sb = await handle.startDetached();
-      } catch (e) {
-        if (e instanceof SandboxStillRunningError) {
-          sb = await handle.connect();
-        } else {
-          throw e;
-        }
-      }
-    }
-
-    if (sandbox.status !== "running") {
-      await db.update(sandboxes).set({ status: "running" }).where(eq(sandboxes.id, sandbox.id));
-    }
+    sb = await handle.connect();
 
     const shell = sandbox.distro?.trim() ?? "alpine";
-    const process = await sb.execStreamWith(DEFAULT_SHELLS[shell] || "/bin/sh", (e: any) => {
-      return e.args(["-i"]).tty(true).stdinPipe();
+    const process = await sb.execStreamWith(DEFAULT_SHELLS[shell] || "/bin/sh", (e) => {
+      return e.args(["-i"]).tty(true).stdinPipe().env("TERM", "xterm-256color");
     });
     const stdin = await process.takeStdin();
     return {

@@ -20,8 +20,10 @@ import { useSandboxPorts } from "@/features/ports/use-sandbox-ports";
 import { useSandbox } from "@/features/sandboxes/use-sandbox";
 import { SnapshotsPanel } from "@/features/snapshots/snapshots-panel";
 import { LeaveTerminalDialog } from "@/features/terminal/leave-terminal-dialog";
+import { TerminalStateOverlay } from "@/features/terminal/terminal-state-overlay";
 import { TerminalTabs } from "@/features/terminal/terminal-tabs";
 import { useActiveTerminalCount } from "@/features/terminal/terminal-activity-store";
+import { clearScrollback } from "@/features/terminal/terminal-scrollback";
 import { deleteSandbox, pauseSandbox, startSandbox, stopSandbox } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { formatResources } from "@/lib/resources";
@@ -36,19 +38,16 @@ function SandboxTerminalPage() {
   const [showLogs, setShowLogs] = useState(false);
   const [showSnapshots, setShowSnapshots] = useState(false);
   const [showMetrics, setShowMetrics] = useState(true);
-  const [status, setStatus] = useState<string | null>(null);
   const [working, setWorking] = useState<"start" | "pause" | "stop" | "delete" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleted, setDeleted] = useState(false);
-  const [terminalEpoch, setTerminalEpoch] = useState(0);
   const ports = useSandboxPorts(name);
-  const sandbox = useSandbox(name);
+  const { sandbox, refresh } = useSandbox(name);
   const navigate = useNavigate();
   const showAside = showPorts || showLogs || showSnapshots;
 
   const activeTerminals = useActiveTerminalCount();
-  const lifecycle =
-    status ?? (activeTerminals > 0 ? "running" : (sandbox?.status ?? "unknown"));
+  const lifecycle = sandbox?.status ?? (activeTerminals > 0 ? "running" : "unknown");
   const running = lifecycle === "running";
   const paused = lifecycle === "paused";
 
@@ -60,7 +59,6 @@ function SandboxTerminalPage() {
   });
 
   useEffect(() => {
-    setStatus(null);
     setWorking(null);
     setActionError(null);
     setDeleted(false);
@@ -73,13 +71,11 @@ function SandboxTerminalPage() {
 
   async function handleStart() {
     if (working) return;
-    const resuming = paused;
     setWorking("start");
     setActionError(null);
     try {
       await startSandbox(name);
-      setStatus("running");
-      if (!resuming) setTerminalEpoch((value) => value + 1);
+      await refresh();
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -93,7 +89,7 @@ function SandboxTerminalPage() {
     setActionError(null);
     try {
       await pauseSandbox(name);
-      setStatus("paused");
+      await refresh();
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -107,7 +103,7 @@ function SandboxTerminalPage() {
     setActionError(null);
     try {
       await stopSandbox(name);
-      setStatus("stopped");
+      await refresh();
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -121,6 +117,7 @@ function SandboxTerminalPage() {
     setActionError(null);
     try {
       await deleteSandbox(name);
+      clearScrollback(name);
       setDeleted(true);
     } catch (cause) {
       setActionError(cause instanceof Error ? cause.message : String(cause));
@@ -258,11 +255,18 @@ function SandboxTerminalPage() {
       <div
         className={cn("grid items-start gap-4", showAside && "lg:grid-cols-[minmax(0,1fr)_18rem]")}
       >
-        <div className="min-w-0 overflow-hidden rounded-md border border-white/10 bg-terminal">
+        <div className="relative min-w-0 overflow-hidden rounded-md border border-white/10 bg-terminal">
           {showMetrics && activeTerminals > 0 && !paused ? (
             <MetricsBar sandboxName={name} memoryLimitMib={sandbox?.memory ?? null} />
           ) : null}
-          <TerminalTabs key={`${name}:${terminalEpoch}`} sandboxName={name} />
+          <TerminalTabs key={name} sandboxName={name} enabled={running} />
+          {running ? null : (
+            <TerminalStateOverlay
+              status={lifecycle}
+              pending={working === "start"}
+              onStart={() => void handleStart()}
+            />
+          )}
         </div>
 
         {showAside ? (

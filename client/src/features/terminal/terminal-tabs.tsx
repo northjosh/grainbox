@@ -10,7 +10,13 @@ type TerminalTab = {
 };
 
 /** Multiple shell sessions over the same sandbox, kept alive across tab switches. */
-export function TerminalTabs({ sandboxName }: { sandboxName: string }) {
+export function TerminalTabs({
+  sandboxName,
+  enabled,
+}: {
+  sandboxName: string;
+  enabled: boolean;
+}) {
   const [tabs, setTabs] = useState<TerminalTab[]>([{ id: 1, name: "shell 1" }]);
   const [active, setActive] = useState(1);
   const [editing, setEditing] = useState<number | null>(null);
@@ -112,7 +118,12 @@ export function TerminalTabs({ sandboxName }: { sandboxName: string }) {
 
       {tabs.map((tab) => (
         <div key={tab.id} className={cn("min-w-0", tab.id === active ? "block" : "hidden")}>
-          <XtermView sandboxName={sandboxName} active={tab.id === active} />
+          <XtermView
+            sandboxName={sandboxName}
+            tabId={tab.id}
+            enabled={enabled}
+            active={tab.id === active}
+          />
         </div>
       ))}
     </div>

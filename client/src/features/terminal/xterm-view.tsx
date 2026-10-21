@@ -1,20 +1,43 @@
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
-import { useEffect, useId, useRef } from "react";
+import { useCallback, useEffect, useId, useRef } from "react";
 import "@xterm/xterm/css/xterm.css";
 
 import { useTerminalActivity } from "./terminal-activity-store";
+import { appendScrollback, loadScrollback, saveScrollback } from "./terminal-scrollback";
 
 type TermProps = {
   sandboxName: string;
+  tabId: number;
+  /** When true, keep a live socket; false closes it without losing the buffer. */
+  enabled: boolean;
   /** When true, focus the terminal — used by tab switches. */
   active?: boolean;
 };
 
-export function XtermView({ sandboxName, active }: TermProps) {
+export function XtermView({ sandboxName, tabId, enabled, active }: TermProps) {
   const termRef = useRef<HTMLDivElement | null>(null);
   const terminalRef = useRef<Terminal | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
+  const transcriptRef = useRef("");
+  const saveTimerRef = useRef<number | null>(null);
   const sessionId = useId();
+
+  const persistScrollback = useCallback(() => {
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    saveScrollback(sandboxName, tabId, transcriptRef.current);
+  }, [sandboxName, tabId]);
+
+  const scheduleScrollbackSave = useCallback(() => {
+    if (saveTimerRef.current !== null) return;
+    saveTimerRef.current = window.setTimeout(() => {
+      saveTimerRef.current = null;
+      saveScrollback(sandboxName, tabId, transcriptRef.current);
+    }, 500);
+  }, [sandboxName, tabId]);
 
   useEffect(() => {
     const container = termRef.current;
@@ -57,7 +80,12 @@ export function XtermView({ sandboxName, active }: TermProps) {
     terminal.open(container);
     fit.fit();
     terminalRef.current = terminal;
-    terminal.writeln(`\x1b[90mConnecting to ${sandboxName}...\x1b[0m`);
+
+    transcriptRef.current = loadScrollback(sandboxName, tabId);
+    if (transcriptRef.current) {
+      terminal.write(transcriptRef.current);
+      terminal.writeln("\r\n\x1b[90m[scrollback restored]\x1b[0m");
+    }
 
     const observer = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -73,77 +101,145 @@ export function XtermView({ sandboxName, active }: TermProps) {
     });
     observer.observe(container);
 
-    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    const socket = new WebSocket(
-      `${protocol}//${location.host}/api/sandboxes/${encodeURIComponent(sandboxName)}/ws`,
-    );
-
-    const sendResize = (rows: number, cols: number) => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify({ type: "resize", rows, cols }));
-      }
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") persistScrollback();
     };
-
-    socket.addEventListener("open", () => {
-      useTerminalActivity.getState().setConnected(sessionId, true);
-      terminal.writeln(`\x1b[38;2;0;255;135mConnected to ${sandboxName}\x1b[0m\r\n`);
-      sendResize(terminal.rows, terminal.cols);
-    });
-
-    socket.addEventListener("message", (event: MessageEvent<string>) => {
-      const message = event.data;
-      try {
-        const parsed: unknown = JSON.parse(message);
-        if (
-          typeof parsed === "object" &&
-          parsed !== null &&
-          "type" in parsed &&
-          parsed.type === "exit" &&
-          "code" in parsed
-        ) {
-          terminal.writeln(`\r\n\x1b[33m[shell exited: ${String(parsed.code)}]\x1b[0m`);
-          return;
-        }
-      } catch {
-        // Shell output is plain text; only control messages are JSON.
-      }
-
-      terminal.write(message);
-    });
-
-    socket.addEventListener("close", () => {
-      useTerminalActivity.getState().setConnected(sessionId, false);
-      terminal.writeln("\r\n\x1b[31m[disconnected]\x1b[0m");
-    });
-
-    socket.addEventListener("error", () => {
-      terminal.writeln("\r\n\x1b[31m[WebSocket error]\x1b[0m");
-    });
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("pagehide", persistScrollback);
 
     const input = terminal.onData((data) => {
-      if (socket.readyState === WebSocket.OPEN) {
+      const socket = socketRef.current;
+      if (socket?.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: "input", data }));
       }
     });
 
     const resize = terminal.onResize(({ rows, cols }) => {
-      sendResize(rows, cols);
+      const socket = socketRef.current;
+      if (socket?.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: "resize", rows, cols }));
+      }
     });
 
     return () => {
-      useTerminalActivity.getState().setConnected(sessionId, false);
+      persistScrollback();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("pagehide", persistScrollback);
       observer.disconnect();
       input.dispose();
       resize.dispose();
-      socket.close();
       terminal.dispose();
       terminalRef.current = null;
     };
-  }, [sandboxName, sessionId]);
+  }, [persistScrollback, sandboxName, tabId]);
 
   useEffect(() => {
-    if (active) terminalRef.current?.focus();
-  }, [active, sandboxName]);
+    const terminal = terminalRef.current;
+    if (!terminal) return;
+
+    terminal.options.disableStdin = !enabled;
+
+    if (!enabled) {
+      terminal.blur();
+      socketRef.current?.close();
+      socketRef.current = null;
+      useTerminalActivity.getState().setConnected(sessionId, false);
+      return;
+    }
+
+    let disposed = false;
+    let shellExited = false;
+    let attempt = 0;
+    let retryTimer: number | null = null;
+    let socket: WebSocket | null = null;
+
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    const url = `${protocol}//${location.host}/api/sandboxes/${encodeURIComponent(sandboxName)}/ws`;
+
+    const scheduleReconnect = () => {
+      if (disposed || shellExited) return;
+      attempt += 1;
+      const delay = Math.min(1000 * 2 ** (attempt - 1), 10_000);
+      retryTimer = window.setTimeout(() => {
+        retryTimer = null;
+        connect();
+      }, delay);
+    };
+
+    const connect = () => {
+      if (disposed) return;
+
+      socket = new WebSocket(url);
+      socketRef.current = socket;
+
+      if (attempt === 0) {
+        terminal.writeln(`\x1b[90mConnecting to ${sandboxName}...\x1b[0m`);
+      } else {
+        terminal.writeln(`\x1b[90mReconnecting to ${sandboxName}…\x1b[0m`);
+      }
+
+      socket.addEventListener("open", () => {
+        if (disposed) {
+          socket?.close();
+          return;
+        }
+        attempt = 0;
+        useTerminalActivity.getState().setConnected(sessionId, true);
+        terminal.writeln(`\x1b[38;2;0;255;135mConnected to ${sandboxName}\x1b[0m\r\n`);
+        if (socket?.readyState === WebSocket.OPEN) {
+          socket.send(
+            JSON.stringify({ type: "resize", rows: terminal.rows, cols: terminal.cols }),
+          );
+        }
+      });
+
+      socket.addEventListener("message", (event: MessageEvent<string>) => {
+        if (disposed) return;
+        const message = event.data;
+        try {
+          const parsed: unknown = JSON.parse(message);
+          if (
+            typeof parsed === "object" &&
+            parsed !== null &&
+            "type" in parsed &&
+            parsed.type === "exit" &&
+            "code" in parsed
+          ) {
+            shellExited = true;
+            terminal.writeln(`\r\n\x1b[33m[shell exited: ${String(parsed.code)}]\x1b[0m`);
+            return;
+          }
+        } catch {
+          // Shell output is plain text; only control messages are JSON.
+        }
+
+        terminal.write(message);
+        transcriptRef.current = appendScrollback(transcriptRef.current, message);
+        scheduleScrollbackSave();
+      });
+
+      socket.addEventListener("close", () => {
+        useTerminalActivity.getState().setConnected(sessionId, false);
+        if (disposed || shellExited) return;
+        terminal.writeln("\r\n\x1b[33m[connection lost — reconnecting…]\x1b[0m");
+        scheduleReconnect();
+      });
+    };
+
+    connect();
+
+    return () => {
+      disposed = true;
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
+      socket?.close();
+      if (socketRef.current === socket) socketRef.current = null;
+      useTerminalActivity.getState().setConnected(sessionId, false);
+    };
+  }, [enabled, sandboxName, scheduleScrollbackSave, sessionId]);
+
+  useEffect(() => {
+    if (active && enabled) terminalRef.current?.focus();
+  }, [active, enabled, sandboxName]);
 
   return <div ref={termRef} className="h-[calc(100vh-13rem)] min-h-72 w-full p-2" />;
 }

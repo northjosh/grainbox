@@ -1,24 +1,32 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getSandbox, type PersistentSandbox } from "@/lib/api";
 
-export function useSandbox(name: string) {
+/** Fetches a sandbox and keeps its lifecycle status fresh. */
+export function useSandbox(name: string, pollMs = 5000) {
   const [sandbox, setSandbox] = useState<PersistentSandbox | null>(null);
+  const seqRef = useRef(0);
 
-  useEffect(() => {
-    let live = true;
-    setSandbox(null);
-
-    getSandbox(name)
-      .then((next) => {
-        if (live) setSandbox(next);
-      })
-      .catch(() => undefined);
-
-    return () => {
-      live = false;
-    };
+  const refresh = useCallback(async () => {
+    const seq = ++seqRef.current;
+    try {
+      const next = await getSandbox(name);
+      if (seqRef.current === seq) setSandbox(next);
+    } catch {
+      // Keep the last known state on transient failures.
+    }
   }, [name]);
 
-  return sandbox;
+  useEffect(() => {
+    setSandbox(null);
+    void refresh();
+
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, pollMs);
+
+    return () => window.clearInterval(timer);
+  }, [pollMs, refresh]);
+
+  return { sandbox, refresh };
 }
