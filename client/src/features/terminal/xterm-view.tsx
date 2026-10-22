@@ -5,17 +5,20 @@ import "@xterm/xterm/css/xterm.css";
 
 import { useTerminalActivity } from "./terminal-activity-store";
 import { appendScrollback, loadScrollback, saveScrollback } from "./terminal-scrollback";
+import { terminalMotd } from "./motd";
 
 type TermProps = {
   sandboxName: string;
   tabId: number;
+  /** Short image/resource summary printed in the shell banner. */
+  details?: string;
   /** When true, keep a live socket; false closes it without losing the buffer. */
   enabled: boolean;
   /** When true, focus the terminal — used by tab switches. */
   active?: boolean;
 };
 
-export function XtermView({ sandboxName, tabId, enabled, active }: TermProps) {
+export function XtermView({ sandboxName, tabId, details, enabled, active }: TermProps) {
   const termRef = useRef<HTMLDivElement | null>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -149,6 +152,7 @@ export function XtermView({ sandboxName, tabId, enabled, active }: TermProps) {
 
     let disposed = false;
     let shellExited = false;
+    let welcomed = false;
     let attempt = 0;
     let retryTimer: number | null = null;
     let socket: WebSocket | null = null;
@@ -185,7 +189,15 @@ export function XtermView({ sandboxName, tabId, enabled, active }: TermProps) {
         }
         attempt = 0;
         useTerminalActivity.getState().setConnected(sessionId, true);
-        terminal.writeln(`\x1b[38;2;0;255;135mConnected to ${sandboxName}\x1b[0m\r\n`);
+        if (welcomed) {
+          terminal.writeln(`\x1b[38;2;0;255;135mConnected to ${sandboxName}\x1b[0m\r\n`);
+        } else {
+          welcomed = true;
+          const motd = terminalMotd(sandboxName, details);
+          terminal.write(motd);
+          transcriptRef.current = appendScrollback(transcriptRef.current, motd);
+          scheduleScrollbackSave();
+        }
         if (socket?.readyState === WebSocket.OPEN) {
           socket.send(
             JSON.stringify({ type: "resize", rows: terminal.rows, cols: terminal.cols }),
@@ -235,7 +247,7 @@ export function XtermView({ sandboxName, tabId, enabled, active }: TermProps) {
       if (socketRef.current === socket) socketRef.current = null;
       useTerminalActivity.getState().setConnected(sessionId, false);
     };
-  }, [enabled, sandboxName, scheduleScrollbackSave, sessionId]);
+  }, [details, enabled, sandboxName, scheduleScrollbackSave, sessionId]);
 
   useEffect(() => {
     if (active && enabled) terminalRef.current?.focus();

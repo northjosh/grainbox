@@ -53,6 +53,9 @@ function SandboxTerminalPage() {
   const lifecycle = sandbox?.status ?? (activeTerminals > 0 ? "running" : "unknown");
   const running = lifecycle === "running";
   const paused = lifecycle === "paused";
+  const details = sandbox
+    ? `${sandbox.image ?? "unknown"} · ${formatResources(sandbox.cpu, sandbox.memory)}`
+    : undefined;
 
   const blocker = useBlocker({
     shouldBlockFn: () => true,
@@ -274,7 +277,12 @@ function SandboxTerminalPage() {
           {showMetrics && activeTerminals > 0 && !paused ? (
             <MetricsBar sandboxName={name} memoryLimitMib={sandbox?.memory ?? null} />
           ) : null}
-          <TerminalTabs key={name} sandboxName={name} enabled={running} />
+          <TerminalTabs
+            key={name}
+            sandboxName={name}
+            details={details}
+            enabled={running}
+          />
           {running ? null : (
             <TerminalStateOverlay
               status={lifecycle}
