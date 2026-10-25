@@ -4,6 +4,8 @@ export type Image = (typeof IMAGES)[number];
 
 export const MAX_CONCURRENT = 3;
 export const SERVER_TIMEOUT_MS = 30_000;
+export const MIN_EXPIRY_HOURS = 1;
+export const MAX_EXPIRY_HOURS = 12;
 
 export type RunOutcome = "success" | "bad-image" | "busy" | "timeout" | "error";
 
@@ -22,6 +24,7 @@ export interface PersistentSandbox {
   memory: number | null;
   cpu: number | null;
   createdAt: string;
+  expiresAt: string;
 }
 
 async function readErrorBody(res: Response): Promise<string> {
@@ -127,11 +130,12 @@ export async function createSandbox(
   name: string,
   image: Image,
   resources: SandboxResources,
+  expiry = MAX_EXPIRY_HOURS,
 ): Promise<PersistentSandbox> {
   const result = await requestJson<{ sandbox: PersistentSandbox }>("/api/sandboxes", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ name, image, ...resources }),
+    body: JSON.stringify({ name, image, expiry, ...resources }),
   });
   return result.sandbox;
 }

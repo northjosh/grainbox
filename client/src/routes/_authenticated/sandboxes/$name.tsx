@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createFileRoute, Link, useBlocker, useNavigate } from "@tanstack/react-router";
 import {
   Camera,
+  Clock,
   FolderTree,
   Gauge,
   Loader2,
@@ -19,6 +20,9 @@ import { LogsPanel } from "@/features/logs/logs-panel";
 import { MetricsBar } from "@/features/metrics/metrics-bar";
 import { PortsPanel } from "@/features/ports/ports-panel";
 import { useSandboxPorts } from "@/features/ports/use-sandbox-ports";
+import { formatTimeLeft, parseExpiry } from "@/features/sandboxes/expiry";
+import { SandboxExpiredOverlay } from "@/features/sandboxes/sandbox-expired-overlay";
+import { useNow } from "@/features/sandboxes/use-now";
 import { useSandbox } from "@/features/sandboxes/use-sandbox";
 import { SnapshotsPanel } from "@/features/snapshots/snapshots-panel";
 import { LeaveTerminalDialog } from "@/features/terminal/leave-terminal-dialog";
@@ -44,10 +48,13 @@ function SandboxTerminalPage() {
   const [working, setWorking] = useState<"start" | "pause" | "stop" | "delete" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleted, setDeleted] = useState(false);
+  const [expiring, setExpiring] = useState(false);
   const ports = useSandboxPorts(name);
   const { sandbox, refresh } = useSandbox(name);
+  const now = useNow();
   const navigate = useNavigate();
   const showAside = showFiles || showPorts || showLogs || showSnapshots;
+  const expiresAt = sandbox ? parseExpiry(sandbox.expiresAt) : Number.NaN;
 
   const activeTerminals = useActiveTerminalCount();
   const lifecycle = sandbox?.status ?? (activeTerminals > 0 ? "running" : "unknown");
@@ -68,12 +75,40 @@ function SandboxTerminalPage() {
     setWorking(null);
     setActionError(null);
     setDeleted(false);
+    setExpiring(false);
   }, [name]);
 
   useEffect(() => {
     if (!deleted) return;
     void navigate({ to: "/sandboxes", replace: true });
   }, [deleted, navigate]);
+
+  const expire = useCallback(async () => {
+    setExpiring(true);
+    const startedAt = Date.now();
+    try {
+      await deleteSandbox(name);
+    } catch {
+      // The backend cron may have already removed it.
+    }
+    const elapsed = Date.now() - startedAt;
+    if (elapsed < 1200) {
+      await new Promise((resolve) => window.setTimeout(resolve, 1200 - elapsed));
+    }
+    clearScrollback(name);
+    setDeleted(true);
+  }, [name]);
+
+  useEffect(() => {
+    if (deleted || expiring || !Number.isFinite(expiresAt)) return;
+    const remaining = expiresAt - Date.now();
+    if (remaining <= 0) {
+      void expire();
+      return;
+    }
+    const timer = window.setTimeout(() => void expire(), remaining);
+    return () => window.clearTimeout(timer);
+  }, [deleted, expire, expiresAt, expiring]);
 
   async function handleStart() {
     if (working) return;
@@ -144,6 +179,18 @@ function SandboxTerminalPage() {
         {sandbox ? (
           <span className="hidden min-w-0 truncate font-mono text-xs text-muted-foreground sm:inline">
             {sandbox.image ?? "—"} · {formatResources(sandbox.cpu, sandbox.memory)}
+          </span>
+        ) : null}
+        {sandbox && Number.isFinite(expiresAt) ? (
+          <span
+            className={cn(
+              "hidden shrink-0 items-center gap-1 font-mono text-xs text-muted-foreground sm:inline-flex",
+              expiresAt - now <= 60 * 60 * 1000 && "text-warning",
+            )}
+            title={`expires ${new Date(expiresAt).toLocaleString()}`}
+          >
+            <Clock className="size-3" />
+            {formatTimeLeft(sandbox.expiresAt, now)}
           </span>
         ) : null}
 
@@ -277,12 +324,7 @@ function SandboxTerminalPage() {
           {showMetrics && activeTerminals > 0 && !paused ? (
             <MetricsBar sandboxName={name} memoryLimitMib={sandbox?.memory ?? null} />
           ) : null}
-          <TerminalTabs
-            key={name}
-            sandboxName={name}
-            details={details}
-            enabled={running}
-          />
+          <TerminalTabs key={name} sandboxName={name} details={details} enabled={running} />
           {running ? null : (
             <TerminalStateOverlay
               status={lifecycle}
@@ -316,6 +358,8 @@ function SandboxTerminalPage() {
         onLeave={() => blocker.proceed?.()}
         onStay={() => blocker.reset?.()}
       />
+
+      {expiring ? <SandboxExpiredOverlay name={name} /> : null}
     </div>
   );
 }

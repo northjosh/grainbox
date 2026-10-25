@@ -8,6 +8,7 @@ import {
   stopSandbox,
   type PersistentSandbox,
 } from "@/lib/api";
+import { parseExpiry } from "./expiry";
 
 function message(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
@@ -19,6 +20,7 @@ export function useSandboxes(query = "") {
   const [working, setWorking] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const seqRef = useRef(0);
+  const expiringRef = useRef(new Set<string>());
 
   const refresh = useCallback(async () => {
     const seq = ++seqRef.current;
@@ -39,6 +41,30 @@ export function useSandboxes(query = "") {
     const timer = setTimeout(() => void refresh(), query ? 250 : 0);
     return () => clearTimeout(timer);
   }, [query, refresh]);
+
+  // Call the delete endpoint as soon as a sandbox's expiry passes.
+  useEffect(() => {
+    if (sandboxes.length === 0) return;
+
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      for (const sandbox of sandboxes) {
+        if (!sandbox.name || expiringRef.current.has(sandbox.id)) continue;
+        const expiresAt = parseExpiry(sandbox.expiresAt);
+        if (!Number.isFinite(expiresAt) || expiresAt > now) continue;
+
+        expiringRef.current.add(sandbox.id);
+        void deleteSandbox(sandbox.name)
+          .catch(() => undefined)
+          .finally(() => {
+            expiringRef.current.delete(sandbox.id);
+            setSandboxes((current) => current.filter((item) => item.id !== sandbox.id));
+          });
+      }
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [sandboxes]);
 
   const setStatus = useCallback((id: string, status: string) => {
     setSandboxes((current) => current.map((item) => (item.id === id ? { ...item, status } : item)));

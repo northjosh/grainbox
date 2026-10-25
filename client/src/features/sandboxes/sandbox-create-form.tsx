@@ -11,7 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { IMAGES, createSandbox, type Image } from "@/lib/api";
+import { Slider } from "@/components/ui/slider";
+import { IMAGES, MAX_EXPIRY_HOURS, MIN_EXPIRY_HOURS, createSandbox, type Image } from "@/lib/api";
 import { formatMemory } from "@/lib/resources";
 
 const CPU_OPTIONS = [1, 2];
@@ -24,6 +25,7 @@ export function SandboxCreateForm({ onCreated }: { onCreated: (name: string) => 
   const [cpu, setCpu] = useState(1);
   const [memory, setMemory] = useState(512);
   const [disk, setDisk] = useState(8192);
+  const [expiry, setExpiry] = useState(MAX_EXPIRY_HOURS);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +37,7 @@ export function SandboxCreateForm({ onCreated }: { onCreated: (name: string) => 
     setPending(true);
     setError(null);
     try {
-      await createSandbox(trimmed, image, { cpu, memory, disk });
+      await createSandbox(trimmed, image, { cpu, memory, disk }, expiry);
       setName("");
       onCreated(trimmed);
     } catch (cause) {
@@ -87,6 +89,27 @@ export function SandboxCreateForm({ onCreated }: { onCreated: (name: string) => 
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="grid gap-2">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="font-mono text-xs font-normal text-muted-foreground">duration</span>
+          <span className="font-mono text-xs">
+            {expiry} {expiry === 1 ? "hour" : "hours"}
+          </span>
+        </div>
+        <Slider
+          aria-label="Sandbox lifetime in hours"
+          min={MIN_EXPIRY_HOURS}
+          max={MAX_EXPIRY_HOURS}
+          step={1}
+          value={expiry}
+          onValueChange={setExpiry}
+        />
+        <div className="flex justify-between font-mono text-[10px] text-muted-foreground">
+          <span>{MIN_EXPIRY_HOURS}h</span>
+          <span>{MAX_EXPIRY_HOURS}h max</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3">

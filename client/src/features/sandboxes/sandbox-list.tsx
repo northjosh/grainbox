@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatResources } from "@/lib/resources";
 import type { PersistentSandbox } from "@/lib/api";
+import { formatTimeLeft, parseExpiry } from "./expiry";
+import { useNow } from "./use-now";
 
 type SandboxListProps = {
   sandboxes: PersistentSandbox[];
@@ -32,6 +34,8 @@ export function SandboxList({
   onStop,
   onDelete,
 }: SandboxListProps) {
+  const now = useNow();
+
   if (loading && sandboxes.length === 0) {
     return <p className="py-6 text-center font-mono text-sm text-muted-foreground">loading…</p>;
   }
@@ -54,6 +58,7 @@ export function SandboxList({
           <th className="py-2 pr-4 font-normal">image</th>
           <th className="py-2 pr-4 font-normal">resources</th>
           <th className="py-2 pr-4 font-normal">status</th>
+          <th className="py-2 pr-4 font-normal">expires</th>
           <th className="py-2 pr-4 font-normal">created</th>
           <th className="py-2" />
         </tr>
@@ -65,6 +70,8 @@ export function SandboxList({
           const busy = working?.endsWith(sandbox.id) ?? false;
           const busyAction = busy ? working?.split(":")[0] : null;
           const label = sandbox.name ?? "sandbox";
+          const expiresAt = parseExpiry(sandbox.expiresAt);
+          const expired = Number.isFinite(expiresAt) && expiresAt <= now;
 
           return (
             <tr key={sandbox.id}>
@@ -98,6 +105,17 @@ export function SandboxList({
                   />
                   {sandbox.status ?? "unknown"}
                 </span>
+              </td>
+              <td
+                className={cn(
+                  "py-2.5 pr-4 font-mono text-xs text-muted-foreground",
+                  expired && "text-destructive",
+                )}
+                title={
+                  Number.isFinite(expiresAt) ? new Date(expiresAt).toLocaleString() : undefined
+                }
+              >
+                {formatTimeLeft(sandbox.expiresAt, now)}
               </td>
               <td className="py-2.5 pr-4 font-mono text-xs text-muted-foreground">
                 {formatCreated(sandbox.createdAt)}
@@ -149,11 +167,7 @@ export function SandboxList({
                       onClick={() => onStop(sandbox)}
                       className="hover:bg-warning/10 [&_svg]:text-warning"
                     >
-                      {busyAction === "stop" ? (
-                        <Loader2 className="animate-spin" />
-                      ) : (
-                        <Square />
-                      )}
+                      {busyAction === "stop" ? <Loader2 className="animate-spin" /> : <Square />}
                     </Button>
                   ) : null}
                   <Button
