@@ -2,7 +2,7 @@ import * as d from "drizzle-orm/sqlite-core";
 import { relations } from "drizzle-orm";
 import { generateSandboxName } from "../src/utils/generate-name.js";
 import { randomUUID } from "node:crypto";
-import { SESSION_TTL_SECONDS } from "../src/constants.js";
+import { DEFAULT_EXPIRY_HOURS, SESSION_TTL_SECONDS } from "../src/constants.js";
 
 export const users = d.sqliteTable(
   "users",
@@ -19,7 +19,7 @@ export const users = d.sqliteTable(
     limit: d.integer(),
     createdAt: d
       .text()
-      .$defaultFn(() => new Date().toISOString())
+      .$defaultFn(() => (new Date(Date.now() + DEFAULT_EXPIRY_HOURS * 60 * 60 * 1000)).toISOString())
       .notNull(),
   },
   (table) => [d.uniqueIndex("email_idx").on(table.email)],
@@ -87,6 +87,10 @@ export const sandboxes = d.sqliteTable(
       .text()
       .$defaultFn(() => new Date().toISOString())
       .notNull(),
+    expiresAt: d
+      .integer({ mode: 'timestamp_ms'})
+      .$defaultFn(() => new Date())
+      .notNull(),
     emephemeral: d.integer({ mode: "boolean" }).default(true),
   },
   (table) => [d.uniqueIndex("sandbox_name_idx").on(table.name)],
@@ -100,7 +104,7 @@ export const ports = d.sqliteTable(
       .$default(() => randomUUID())
       .primaryKey(),
     number: d.text().notNull(),
-    url: d.text().unique(),
+    url: d.text().unique().notNull(),
     sandbox: d.text().references(() => sandboxes.id),
     createdAt: d
       .text()

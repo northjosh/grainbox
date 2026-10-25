@@ -4,6 +4,7 @@ import { ensureRuntime } from "microsandbox";
 import { log } from "evlog";
 import { initSentry } from "../sentry.config.js";
 import { createApp } from "./app.js";
+import "./cron.js";
 
 initSentry();
 await ensureRuntime();
@@ -15,7 +16,7 @@ const wss = new WebSocketServer({ noServer: true });
 serve(
   {
     fetch: app.fetch,
-    port: Number(process.env.GB_SERVER_PORT) || 3001,
+    port: Number(process.env.GB_SERVER_PORT) || 3003,
     websocket: {
       server: wss,
     },

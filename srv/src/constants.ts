@@ -19,11 +19,13 @@ export const DEFAULT_DISK = 8192; //8192 mb
 export const MAX_DISK = 8192; //8192 mb
 export const MAX_CPUS = 2; // 2 vcpu
 export const MAX_MEMORY = 512; //512 mb
-export const ADMIN_SECRET = process.env.ADMIN_SECRET ?? "yadayadda";
-export const ADMIN_LISTEN_ADDR= process.env.ADMIN_LISTEN_ADDR ?? "http://localhost:9090"
+export const ADMIN_SECRET = "BpBaXEorie7w1WK47US3vE9qKRtO2ii6%";
+export const ADMIN_LISTEN_ADDR = process.env.ADMIN_LISTEN_ADDR ?? "localhost:9090";
 export const MAX_PORTS = 5;
-export const BASE_DOMAIN = process.env.BASE_DOMAIN   ?? "grainboxapps.northjosh.com";
+export const BASE_DOMAIN = process.env.BASE_DOMAIN ?? "grainboxapps.northjosh.com";
 export const DEFAULT_GUEST_PORT = 7123;
+export const DEFAULT_EXPIRY_HOURS = 12;
+export const MAX_EXPIRY_HOURS = 12;
 export const GATEWAY_EXECUTABLE_PATH = process.env.GATEWAY_EXECUTABLE_PATH
   ? process.env.GATEWAY_EXECUTABLE_PATH
   : projectPath("gateway/gateway");

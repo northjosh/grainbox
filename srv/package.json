@@ -11,17 +11,18 @@
     "@libsql/client": "^0.18.0",
     "@sentry/hono": "^11.8.0",
     "@sentry/node": "^11.8.0",
-    "@types/ws": "^8.18.2",
     "drizzle-orm": "^0.45.3",
     "evlog": "^2.33.0",
     "hono": "^4.13.12",
+    "microsandbox": "^0.7.8",
+    "node-cron": "^4.6.0",
     "ws": "^8.22.0"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
+    "@types/ws": "^8.18.2",
     "dotenv": "^18.0.5",
     "drizzle-kit": "^0.31.11",
-    "microsandbox": "^0.7.8",
-    "typescript": "catalog:"
+    "typescript": "^7.0.2"
   }
 }

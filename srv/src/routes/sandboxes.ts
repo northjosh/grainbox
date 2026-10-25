@@ -27,6 +27,7 @@ import {
   MAX_CONCURRENT,
   MAX_CPUS,
   MAX_DISK,
+  MAX_EXPIRY_HOURS,
   MAX_MEMORY,
   MAX_SANDBOXES,
   PORTS_EXECUTABLE_PATH,
@@ -35,6 +36,7 @@ import {
 } from "../constants.js";
 import { releasePort, setPort } from "../sandbox/networking.js";
 import type { Env } from "../env.js";
+import { deletePortsForSandbox } from "../ports/ports.js";
 
 export const sandboxesRoutes = new Hono<Env>();
 
@@ -49,7 +51,13 @@ function parseResource(value: unknown, fallback: number, min: number, max: numbe
 }
 
 sandboxesRoutes.post("/sandboxes", validateName, validateImage, async (c: Context<Env>) => {
-  const { name, image, cpu, memory, disk } = await c.req.json();
+  const { name, image, cpu, memory, disk, expiry } = await c.req.json();
+
+  if (Number(expiry) > MAX_EXPIRY_HOURS) {
+    return c.json({ error: `invalid expiry, max ${MAX_EXPIRY_HOURS} hours allowed` }, 400);
+  }
+
+  const expHours = new Date(Date.now() + Number(expiry) * 60 * 60 * 1000);
   const user = c.get("user");
   const log = c.get("log");
 
@@ -91,6 +99,7 @@ sandboxesRoutes.post("/sandboxes", validateName, validateImage, async (c: Contex
       .cpus(cpuCount)
       .rootDisk(diskMib)
       .memory(memoryMib)
+      .maxDuration(Number(expiry) * 60 * 60)
       .maxCpus(MAX_CPUS)
       .maxMemory(MAX_MEMORY)
       .port(port, DEFAULT_GUEST_PORT)
@@ -114,6 +123,7 @@ sandboxesRoutes.post("/sandboxes", validateName, validateImage, async (c: Contex
         hostPort: port,
         guestPort: DEFAULT_GUEST_PORT, // or generate a random port with randomPort()
         image,
+        expiresAt: expHours,
         status: "running",
         memory: memoryMib,
         cpu: cpuCount,
@@ -221,11 +231,11 @@ sandboxesRoutes.post(
 // Stop and delete
 sandboxesRoutes.delete("/sandboxes/:name", validateSandbox, async (c: Context<Env>) => {
   const sandbox = c.get("sandbox");
-
   try {
     const handle = await Sandbox.get(sandbox.msbName);
     await handle.stop();
     await handle.destroy();
+    await deletePortsForSandbox(sandbox.id)
     await db.delete(sandboxes).where(eq(sandboxes.id, sandbox.id));
     return c.json({ success: true });
   } catch {
