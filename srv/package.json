@@ -13,7 +13,7 @@
     "@sentry/node": "^11.8.0",
     "drizzle-orm": "^0.45.3",
     "evlog": "^2.33.0",
-    "hono": "^4.13.12",
+    "hono": "^4.13.16",
     "microsandbox": "^0.7.8",
     "node-cron": "^4.6.0",
     "ws": "^8.22.0"
